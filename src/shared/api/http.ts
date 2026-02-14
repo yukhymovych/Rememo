@@ -21,6 +21,11 @@ async function fetchJson<T>(endpoint: string, options: FetchOptions): Promise<T>
     throw new Error(errorText || `HTTP error! status: ${response.status}`);
   }
 
+  // Handle 204 No Content - no body to parse
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json();
 }
 
