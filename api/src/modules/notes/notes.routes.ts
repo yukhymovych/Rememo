@@ -7,6 +7,7 @@ export const notesRouter = Router();
 notesRouter.use(requireAuth);
 
 notesRouter.get('/', notesController.getNotes);
+notesRouter.get('/:id/embeds', notesController.getNoteEmbeds);
 notesRouter.get('/:id', notesController.getNote);
 notesRouter.post('/', notesController.createNote);
 notesRouter.put('/:id', notesController.updateNote);

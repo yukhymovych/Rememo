@@ -7,11 +7,13 @@ export const createNoteSchema = z.object({
     .transform((s) => s.trim())
     .optional()
     .default(''),
+  parent_id: z.string().uuid().nullable().optional(),
   rich_content: z.array(z.unknown()).optional().default([]),
 });
 
 export const updateNoteSchema = z.object({
   title: z.string().max(200).transform((s) => s.trim()),
+  parent_id: z.string().uuid().nullable().optional(),
   rich_content: z.array(z.unknown()),
 });
 

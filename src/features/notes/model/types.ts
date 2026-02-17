@@ -10,8 +10,16 @@ export interface NoteListItem {
 export interface Note {
   id: string;
   title: string;
+  parent_id?: string | null;
   rich_content: RichContent;
   content_text: string;
   created_at: string;
   updated_at: string;
+}
+
+/** Block format for embedded page: { type: "embeddedPage", props: { noteId: "<uuid>" }, content: [] } */
+export interface EmbeddedPageBlock {
+  type: 'embeddedPage';
+  props: { noteId: string };
+  content: unknown[];
 }

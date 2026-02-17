@@ -23,8 +23,11 @@ export function useCreateNote() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: notesApi.createNote,
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+      if (variables.parent_id) {
+        queryClient.invalidateQueries({ queryKey: NOTE_EMBEDS_KEY(variables.parent_id) });
+      }
     },
   });
 }
@@ -37,6 +40,7 @@ export function useUpdateNote() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: NOTES_KEY });
       queryClient.invalidateQueries({ queryKey: NOTE_KEY(variables.id) });
+      queryClient.invalidateQueries({ queryKey: NOTE_EMBEDS_KEY(variables.id) });
     },
   });
 }
@@ -48,5 +52,15 @@ export function useDeleteNote() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NOTES_KEY });
     },
+  });
+}
+
+const NOTE_EMBEDS_KEY = (noteId: string) => ['notes', noteId, 'embeds'];
+
+export function useNoteEmbeds(noteId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: NOTE_EMBEDS_KEY(noteId ?? ''),
+    queryFn: () => notesApi.getNoteEmbeds(noteId!),
+    enabled: !!noteId && enabled,
   });
 }

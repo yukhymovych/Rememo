@@ -11,10 +11,12 @@ export async function getNote(id: string): Promise<Note> {
 
 export async function createNote(payload: {
   title?: string;
+  parent_id?: string | null;
   rich_content?: unknown;
 }): Promise<Note> {
   return http.post<Note>('/notes', {
     title: payload.title ?? 'Untitled',
+    parent_id: payload.parent_id ?? undefined,
     rich_content: payload.rich_content ?? [{ type: 'paragraph', content: [] }],
   });
 }
@@ -28,4 +30,8 @@ export async function updateNote(
 
 export async function deleteNote(id: string): Promise<void> {
   return http.delete<void>(`/notes/${id}`);
+}
+
+export async function getNoteEmbeds(noteId: string): Promise<NoteListItem[]> {
+  return http.get<NoteListItem[]>(`/notes/${noteId}/embeds`);
 }
