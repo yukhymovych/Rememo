@@ -1,11 +1,6 @@
 import { Button } from '@/shared/ui';
-import { DEFAULT_NOTE_TITLE } from '../model/types';
-import type { NoteListItem } from '../model/types';
-
-interface NoteEmbedsListProps {
-  embeds: NoteListItem[];
-  onNavigate: (id: string) => void;
-}
+import { DEFAULT_NOTE_TITLE } from '../../model/types';
+import type { NoteEmbedsListProps } from './NoteEmbedsList.types';
 
 export function NoteEmbedsList({ embeds, onNavigate }: NoteEmbedsListProps) {
   return (

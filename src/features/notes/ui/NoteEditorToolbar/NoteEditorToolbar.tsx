@@ -1,7 +1,7 @@
-import { NoteBreadcrumbs } from './NoteBreadcrumbs';
+import { NoteBreadcrumbs } from '../NoteBreadcrumbs';
 import { Button } from '@/shared/ui';
-import type { NoteListItem } from '../model/types';
-import type { SaveStatus } from '../model/useNoteEditor';
+import type { SaveStatus } from '../../model/useNoteEditor';
+import type { NoteEditorToolbarProps } from './NoteEditorToolbar.types';
 
 const SAVE_STATUS_COLOR: Record<SaveStatus, string> = {
   saving: '#2563eb',
@@ -16,15 +16,6 @@ const SAVE_STATUS_LABEL: Record<SaveStatus, string> = {
   error: 'Error saving',
   idle: '\u00A0',
 };
-
-interface NoteEditorToolbarProps {
-  activeId: string;
-  notes: NoteListItem[] | undefined;
-  currentTitle: string;
-  saveStatus: SaveStatus;
-  onDelete: () => void;
-  isDeleting: boolean;
-}
 
 export function NoteEditorToolbar({
   activeId,

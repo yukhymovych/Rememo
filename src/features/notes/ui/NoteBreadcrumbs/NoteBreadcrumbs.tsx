@@ -4,10 +4,9 @@ import {
   buildNoteLookupMaps,
   getAncestorChain,
   splitBreadcrumbAncestors,
-} from '../model/noteHierarchy';
-import { DEFAULT_NOTE_TITLE } from '../model/types';
-import { notesRoutes } from '../lib/routes';
-import type { NoteListItem } from '../model/types';
+} from '../../model/noteHierarchy';
+import { DEFAULT_NOTE_TITLE } from '../../model/types';
+import { notesRoutes } from '../../lib/routes';
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -23,15 +22,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui';
+import type {
+  BreadcrumbEllipsisDropdownProps,
+  BreadcrumbAncestorLinkProps,
+  NoteBreadcrumbsProps,
+} from './NoteBreadcrumbs.types';
 
 const TRUNCATE_CLASS = 'max-w-[220px] truncate inline-block';
 const MAX_VISIBLE_LINKS = 3;
-
-interface BreadcrumbEllipsisDropdownProps {
-  ancestorIds: string[];
-  titleById: Map<string, string>;
-  onNavigate: (id: string) => void;
-}
 
 function BreadcrumbEllipsisDropdown({
   ancestorIds,
@@ -74,11 +72,6 @@ function BreadcrumbEllipsisDropdown({
   );
 }
 
-interface BreadcrumbAncestorLinkProps {
-  id: string;
-  title: string;
-}
-
 function BreadcrumbAncestorLink({ id, title }: BreadcrumbAncestorLinkProps) {
   return (
     <>
@@ -95,12 +88,6 @@ function BreadcrumbAncestorLink({ id, title }: BreadcrumbAncestorLinkProps) {
       </BreadcrumbItem>
     </>
   );
-}
-
-interface NoteBreadcrumbsProps {
-  activeId: string;
-  notes: NoteListItem[] | undefined;
-  currentTitle: string;
 }
 
 export function NoteBreadcrumbs({ activeId, notes, currentTitle }: NoteBreadcrumbsProps) {

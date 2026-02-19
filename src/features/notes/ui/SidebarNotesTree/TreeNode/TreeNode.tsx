@@ -1,5 +1,5 @@
-import type { NoteItem } from './treeUtils';
-import { DEFAULT_NOTE_TITLE } from '../../model/types';
+import type { TreeNodeProps } from './TreeNode.types';
+import { DEFAULT_NOTE_TITLE } from '../../../model/types';
 import {
   Button,
   DropdownMenu,
@@ -8,20 +8,6 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui';
 import { MoreVertical } from 'lucide-react';
-
-interface TreeNodeProps {
-  nodeId: string;
-  depth: number;
-  byId: Map<string, NoteItem>;
-  childrenByParent: Map<string | null, string[]>;
-  expandedSet: Set<string>;
-  toggleExpand: (id: string) => void;
-  onCreateChild: (parentId: string) => void;
-  onDeletePage: (pageId: string) => void;
-  isDeleting: boolean;
-  navigate: (id: string) => void;
-  activeId: string | undefined;
-}
 
 export function TreeNode({
   nodeId,

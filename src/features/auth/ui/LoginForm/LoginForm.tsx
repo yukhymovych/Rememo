@@ -1,5 +1,5 @@
 import { Button } from '@/shared/ui';
-import { FormField } from './FormField';
+import { FormField } from '../FormField';
 import type { LoginFormProps } from './LoginForm.types';
 
 const containerStyle = { padding: '20px', maxWidth: '400px', margin: '50px auto' };

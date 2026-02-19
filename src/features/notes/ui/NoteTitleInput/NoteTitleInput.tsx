@@ -1,7 +1,4 @@
-interface NoteTitleInputProps {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
+import type { NoteTitleInputProps } from './NoteTitleInput.types';
 
 export function NoteTitleInput({ value, onChange }: NoteTitleInputProps) {
   return (

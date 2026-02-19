@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { SidebarNotesTree } from '../../features/notes/ui/SidebarNotesTree/SidebarNotesTree';
+import { SidebarNotesTree } from '../../features/notes/ui/SidebarNotesTree';
 
 export function NotesLayout() {
   return (
