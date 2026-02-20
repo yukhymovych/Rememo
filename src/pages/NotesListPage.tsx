@@ -4,6 +4,8 @@ import { NotesListPageView } from '../features/notes/ui/NotesListPage';
 export function NotesListPage() {
   const {
     notes,
+    recentNotes,
+    recentFormattedTimes,
     isLoading,
     error,
     createMutation,
@@ -14,6 +16,8 @@ export function NotesListPage() {
   return (
     <NotesListPageView
       notes={notes}
+      recentNotes={recentNotes}
+      recentFormattedTimes={recentFormattedTimes}
       isLoading={isLoading}
       error={error}
       createError={createMutation.error}

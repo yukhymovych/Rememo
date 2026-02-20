@@ -16,8 +16,11 @@ import { notesRoutes } from '../lib/routes';
 import { ensureBlocksArray, appendEmbeddedPageBlock } from '../lib/blocks';
 import { getAncestorChain } from './noteHierarchy';
 import { buildMaps } from '../ui/SidebarNotesTree/treeUtils';
+import { formatRelativeTime } from '../domain/formatDate';
+import { getRecentNotes } from '../lib/recents';
 
 const EXPANDED_STORAGE_KEY = 'notes-sidebar-expanded';
+const RECENTS_EXPANDED_STORAGE_KEY = 'notes-sidebar-recents-expanded';
 const FAVORITES_EXPANDED_STORAGE_KEY = 'notes-sidebar-favorites-expanded';
 const FAVORITES_TREE_EXPANDED_STORAGE_KEY = 'notes-sidebar-favorites-tree-expanded';
 const ALL_PAGES_EXPANDED_STORAGE_KEY = 'notes-sidebar-all-pages-expanded';
@@ -36,6 +39,24 @@ function loadExpandedFromStorage(): Set<string> {
 function saveExpandedToStorage(set: Set<string>) {
   try {
     localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify([...set]));
+  } catch {
+    // ignore
+  }
+}
+
+function loadRecentsExpandedFromStorage(): boolean {
+  try {
+    const raw = localStorage.getItem(RECENTS_EXPANDED_STORAGE_KEY);
+    if (raw === null) return false;
+    return JSON.parse(raw) === true;
+  } catch {
+    return false;
+  }
+}
+
+function saveRecentsExpandedToStorage(expanded: boolean) {
+  try {
+    localStorage.setItem(RECENTS_EXPANDED_STORAGE_KEY, JSON.stringify(expanded));
   } catch {
     // ignore
   }
@@ -110,6 +131,9 @@ export function useNotesTree() {
   const [expanded, setExpanded] = useState<Set<string>>(() =>
     loadExpandedFromStorage()
   );
+  const [recentsExpanded, setRecentsExpanded] = useState<boolean>(() =>
+    loadRecentsExpandedFromStorage()
+  );
   const [favoritesExpanded, setFavoritesExpanded] = useState<boolean>(() =>
     loadFavoritesExpandedFromStorage()
   );
@@ -146,6 +170,30 @@ export function useNotesTree() {
         .map((n) => n.id),
     [notes]
   );
+
+  const recentIds = useMemo(
+    () => getRecentNotes(notes).map((n) => n.id),
+    [notes]
+  );
+
+  const recentFormattedTimes = useMemo(() => {
+    const map = new Map<string, string>();
+    recentIds.forEach((id) => {
+      const note = byId.get(id);
+      if (note?.last_visited_at) {
+        map.set(id, formatRelativeTime(note.last_visited_at));
+      }
+    });
+    return map;
+  }, [recentIds, byId]);
+
+  const toggleRecentsExpand = useCallback(() => {
+    setRecentsExpanded((prev) => {
+      const next = !prev;
+      saveRecentsExpandedToStorage(next);
+      return next;
+    });
+  }, []);
 
   const toggleFavoritesExpand = useCallback(() => {
     setFavoritesExpanded((prev) => {
@@ -311,6 +359,10 @@ export function useNotesTree() {
     rootIds,
     expanded,
     toggleExpand,
+    recentIds,
+    recentFormattedTimes,
+    recentsExpanded,
+    toggleRecentsExpand,
     favoritesTreeExpanded,
     toggleFavoritesTreeExpand,
     favoriteIds,

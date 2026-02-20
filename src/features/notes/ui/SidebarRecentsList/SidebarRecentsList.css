@@ -1,0 +1,65 @@
+.sidebar-recents {
+  margin-bottom: 8px;
+}
+
+.sidebar-recents__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.sidebar-recents__clock {
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+
+.sidebar-recents__chevron {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.sidebar-recents__list {
+  padding-left: 4px;
+}
+
+.sidebar-recents__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 2px;
+  font-size: 13px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #e5e7eb;
+}
+
+.sidebar-recents__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-recents__item--active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-recents__title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.sidebar-recents__time {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}

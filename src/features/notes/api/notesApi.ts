@@ -39,6 +39,10 @@ export async function setNoteFavorite(
   return http.patch<Note>(`/notes/${id}/favorite`, { is_favorite: isFavorite });
 }
 
+export async function updateNoteLastVisited(id: string): Promise<Note> {
+  return http.patch<Note>(`/notes/${id}/visit`);
+}
+
 export async function getNoteEmbeds(noteId: string): Promise<NoteListItem[]> {
   return http.get<NoteListItem[]>(`/notes/${noteId}/embeds`);
 }

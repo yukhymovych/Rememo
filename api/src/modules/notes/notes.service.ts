@@ -134,6 +134,10 @@ export async function setNoteFavorite(
   return notesSQL.updateNoteFavorite(id, userId, input.is_favorite);
 }
 
+export async function updateNoteLastVisited(id: string, userId: string) {
+  return notesSQL.updateNoteLastVisited(id, userId);
+}
+
 export async function getNoteEmbeds(hostNoteId: string, userId: string) {
   return noteEmbedsSQL.getNoteEmbeds(userId, hostNoteId);
 }

@@ -12,6 +12,7 @@ import {
   useCreateNote,
   useNotesQuery,
   useNoteEmbeds,
+  useUpdateNoteLastVisited,
 } from './useNotes';
 import { DEFAULT_NOTE_TITLE } from './types';
 import { EmbeddedPageBlock } from '../blocks/EmbeddedPageBlock';
@@ -29,6 +30,7 @@ export function useNoteEditor(id: string | undefined) {
   const updateMutation = useUpdateNote();
   const deleteMutation = useDeleteNote();
   const createMutation = useCreateNote();
+  const updateLastVisited = useUpdateNoteLastVisited();
 
   const [title, setTitle] = useState('');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -79,6 +81,12 @@ export function useNoteEditor(id: string | undefined) {
   useEffect(() => {
     if (note) setTitle(note.title || '');
   }, [note]);
+
+  useEffect(() => {
+    if (id && note) {
+      updateLastVisited.mutate(id);
+    }
+  }, [id, note?.id, updateLastVisited]);
 
   const handleTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

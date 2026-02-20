@@ -166,6 +166,27 @@ export async function setNoteFavorite(
   }
 }
 
+export async function updateNoteLastVisited(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const id = noteIdSchema.parse(req.params.id);
+    const note = await notesService.updateNoteLastVisited(id, userId);
+
+    if (!note) {
+      res.status(404).json({ error: 'Note not found' });
+      return;
+    }
+
+    res.json(note);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getNoteEmbeds(
   req: Request,
   res: Response,

@@ -4,6 +4,7 @@ import { useNotesTree } from '../../model/useNotesTree';
 import { TreeNode } from './TreeNode';
 import { DndContextWrapper } from './DndContextWrapper';
 import { DropZone } from './DropZone';
+import { SidebarRecentsList } from '../SidebarRecentsList/SidebarRecentsList';
 import { SidebarFavoritesList } from '../SidebarFavoritesList/SidebarFavoritesList';
 import { Button } from '@/shared/ui';
 import { UserInfo } from '@/app/components/UserInfo';
@@ -18,6 +19,10 @@ export function SidebarNotesTree() {
     rootIds,
     expanded,
     toggleExpand,
+    recentIds,
+    recentFormattedTimes,
+    recentsExpanded,
+    toggleRecentsExpand,
     favoritesTreeExpanded,
     toggleFavoritesTreeExpand,
     favoriteIds,
@@ -89,6 +94,15 @@ export function SidebarNotesTree() {
       >
         {createNote.isPending ? 'Creating...' : 'New page'}
       </Button>
+      <SidebarRecentsList
+        recentIds={recentIds}
+        byId={byId}
+        recentFormattedTimes={recentFormattedTimes}
+        isExpanded={recentsExpanded}
+        onToggleExpand={toggleRecentsExpand}
+        navigate={handleNavigate}
+        activeId={activeId}
+      />
       <SidebarFavoritesList
         favoriteIds={favoriteIds}
         byId={byId}

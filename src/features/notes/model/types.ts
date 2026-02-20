@@ -10,6 +10,7 @@ export interface NoteListItem {
   parent_id?: string | null;
   sort_order?: number;
   is_favorite?: boolean;
+  last_visited_at?: string | null;
 }
 
 export interface Note {
