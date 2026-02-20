@@ -24,6 +24,11 @@ export const moveNoteSchema = z.object({
   position: z.number().int().min(0).optional().default(0),
 });
 
+export const setFavoriteSchema = z.object({
+  is_favorite: z.boolean(),
+});
+
 export type CreateNoteInput = z.infer<typeof createNoteSchema>;
 export type UpdateNoteInput = z.infer<typeof updateNoteSchema>;
 export type MoveNoteInput = z.infer<typeof moveNoteSchema>;
+export type SetFavoriteInput = z.infer<typeof setFavoriteSchema>;

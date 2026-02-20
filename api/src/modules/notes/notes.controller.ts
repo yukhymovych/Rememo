@@ -4,6 +4,7 @@ import {
   createNoteSchema,
   updateNoteSchema,
   moveNoteSchema,
+  setFavoriteSchema,
   noteIdSchema,
 } from './notes.schemas.js';
 
@@ -138,6 +139,28 @@ export async function deleteNote(
     }
 
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function setNoteFavorite(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const id = noteIdSchema.parse(req.params.id);
+    const input = setFavoriteSchema.parse(req.body);
+    const note = await notesService.setNoteFavorite(id, userId, input);
+
+    if (!note) {
+      res.status(404).json({ error: 'Note not found' });
+      return;
+    }
+
+    res.json(note);
   } catch (error) {
     next(error);
   }

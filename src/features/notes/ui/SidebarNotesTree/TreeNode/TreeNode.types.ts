@@ -9,6 +9,8 @@ export interface TreeNodeProps {
   toggleExpand: (id: string) => void;
   onCreateChild: (parentId: string) => void;
   onDeletePage: (pageId: string) => void;
+  onAddToFavorites?: (noteId: string) => void;
+  onRemoveFromFavorites?: (noteId: string) => void;
   onMoveNote?: (noteId: string, newParentId: string | null, position: number) => void;
   isDeleting: boolean;
   navigate: (id: string) => void;

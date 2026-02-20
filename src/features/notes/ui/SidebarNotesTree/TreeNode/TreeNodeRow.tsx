@@ -17,9 +17,12 @@ export interface TreeNodeRowProps {
   hasChildren: boolean;
   isExpanded: boolean;
   isActive: boolean;
+  isFavorite: boolean;
   toggleExpand: (id: string) => void;
   onCreateChild: (parentId: string) => void;
   onDeletePage: (pageId: string) => void;
+  onAddToFavorites?: (noteId: string) => void;
+  onRemoveFromFavorites?: (noteId: string) => void;
   isDeleting: boolean;
   navigate: (id: string) => void;
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
@@ -34,9 +37,12 @@ export function TreeNodeRow({
   hasChildren,
   isExpanded,
   isActive,
+  isFavorite,
   toggleExpand,
   onCreateChild,
   onDeletePage,
+  onAddToFavorites,
+  onRemoveFromFavorites,
   isDeleting,
   navigate,
   dragHandleProps,
@@ -110,6 +116,19 @@ export function TreeNodeRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {isFavorite ? (
+              <DropdownMenuItem
+                onClick={() => onRemoveFromFavorites?.(nodeId)}
+              >
+                Remove from Favorites
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => onAddToFavorites?.(nodeId)}
+              >
+                Add to Favorites
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => onCreateChild(nodeId)}>
               Add new page
             </DropdownMenuItem>

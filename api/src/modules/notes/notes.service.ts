@@ -1,6 +1,6 @@
 import * as notesSQL from './notes.sql.js';
 import * as noteEmbedsSQL from './noteEmbeds.sql.js';
-import { CreateNoteInput, UpdateNoteInput, MoveNoteInput } from './notes.schemas.js';
+import { CreateNoteInput, UpdateNoteInput, MoveNoteInput, SetFavoriteInput } from './notes.schemas.js';
 
 type BlockLike = { type?: string; props?: { noteId?: string }; content?: unknown[] };
 
@@ -124,6 +124,14 @@ export async function updateNote(
 
 export async function deleteNote(id: string, userId: string) {
   return notesSQL.deleteNote(id, userId);
+}
+
+export async function setNoteFavorite(
+  id: string,
+  userId: string,
+  input: SetFavoriteInput
+) {
+  return notesSQL.updateNoteFavorite(id, userId, input.is_favorite);
 }
 
 export async function getNoteEmbeds(hostNoteId: string, userId: string) {

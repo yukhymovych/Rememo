@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
+import { FileStack } from 'lucide-react';
 import { useNotesTree } from '../../model/useNotesTree';
 import { TreeNode } from './TreeNode';
 import { DndContextWrapper } from './DndContextWrapper';
 import { DropZone } from './DropZone';
+import { SidebarFavoritesList } from '../SidebarFavoritesList/SidebarFavoritesList';
 import { Button } from '@/shared/ui';
 import { UserInfo } from '@/app/components/UserInfo';
 import './SidebarNotesTree.css';
@@ -16,11 +18,20 @@ export function SidebarNotesTree() {
     rootIds,
     expanded,
     toggleExpand,
+    favoritesTreeExpanded,
+    toggleFavoritesTreeExpand,
+    favoriteIds,
+    favoritesExpanded,
+    toggleFavoritesExpand,
+    allPagesExpanded,
+    toggleAllPagesExpand,
     handleCreateRoot,
     handleCreateChild,
     handleMoveNote,
     handleDeletePage,
     handleNavigate,
+    handleAddToFavorites,
+    handleRemoveFromFavorites,
     activeId,
     createNote,
     deleteNote,
@@ -70,36 +81,70 @@ export function SidebarNotesTree() {
       <div className="sidebar-user-info">
         <UserInfo />
       </div>
-      <DndContextWrapper onDragEnd={handleDragEnd}>
+      <Button
+        variant="ghost-muted"
+        fullWidth
+        onClick={handleCreateRoot}
+        disabled={createNote.isPending}
+      >
+        {createNote.isPending ? 'Creating...' : 'New page'}
+      </Button>
+      <SidebarFavoritesList
+        favoriteIds={favoriteIds}
+        byId={byId}
+        childrenByParent={childrenByParent}
+        expandedSet={favoritesTreeExpanded}
+        toggleExpand={toggleFavoritesTreeExpand}
+        isExpanded={favoritesExpanded}
+        onToggleExpand={toggleFavoritesExpand}
+        onAddToFavorites={handleAddToFavorites}
+        onRemoveFromFavorites={handleRemoveFromFavorites}
+        onCreateChild={handleCreateChild}
+        onDeletePage={handleDeletePage}
+        isDeleting={deleteNote.isPending}
+        navigate={handleNavigate}
+        activeId={activeId}
+      />
+      <div className="sidebar-all-pages">
         <Button
           variant="ghost-muted"
           fullWidth
-          onClick={handleCreateRoot}
-          disabled={createNote.isPending}
+          onClick={toggleAllPagesExpand}
+          className="sidebar-all-pages__header"
         >
-          {createNote.isPending ? 'Creating...' : 'New page'}
+          <FileStack className="sidebar-all-pages__icon size-4" />
+          <span>All pages</span>
+          <span className="sidebar-all-pages__chevron">
+            {allPagesExpanded ? '▼' : '▶'}
+          </span>
         </Button>
-        <div className="sidebar-tree">
-          {rootIds.map((nodeId) => (
-            <TreeNode
-              key={nodeId}
-              nodeId={nodeId}
-              depth={0}
-              byId={byId}
-              childrenByParent={childrenByParent}
-              expandedSet={expanded}
-              toggleExpand={toggleExpand}
-              onCreateChild={handleCreateChild}
-              onDeletePage={handleDeletePage}
-              onMoveNote={handleMoveNote}
-              isDeleting={deleteNote.isPending}
-              navigate={handleNavigate}
-              activeId={activeId}
-            />
-          ))}
-          <DropZone id="root-end" variant="between" className="sidebar-root-end" />
-        </div>
-      </DndContextWrapper>
+        {allPagesExpanded && (
+          <DndContextWrapper onDragEnd={handleDragEnd}>
+            <div className="sidebar-tree">
+              {rootIds.map((nodeId) => (
+                <TreeNode
+                  key={nodeId}
+                  nodeId={nodeId}
+                  depth={0}
+                  byId={byId}
+                  childrenByParent={childrenByParent}
+                  expandedSet={expanded}
+                  toggleExpand={toggleExpand}
+                  onCreateChild={handleCreateChild}
+                  onDeletePage={handleDeletePage}
+                  onMoveNote={handleMoveNote}
+                  onAddToFavorites={handleAddToFavorites}
+                  onRemoveFromFavorites={handleRemoveFromFavorites}
+                  isDeleting={deleteNote.isPending}
+                  navigate={handleNavigate}
+                  activeId={activeId}
+                />
+              ))}
+              <DropZone id="root-end" variant="between" className="sidebar-root-end" />
+            </div>
+          </DndContextWrapper>
+        )}
+      </div>
     </div>
   );
 }

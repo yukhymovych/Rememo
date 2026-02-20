@@ -7,6 +7,7 @@ import {
   useUpdateNote,
   useDeleteNote,
   useMoveNote,
+  useSetNoteFavorite,
   NOTE_KEY,
 } from './useNotes';
 import * as notesApi from '../api/notesApi';
@@ -17,6 +18,9 @@ import { getAncestorChain } from './noteHierarchy';
 import { buildMaps } from '../ui/SidebarNotesTree/treeUtils';
 
 const EXPANDED_STORAGE_KEY = 'notes-sidebar-expanded';
+const FAVORITES_EXPANDED_STORAGE_KEY = 'notes-sidebar-favorites-expanded';
+const FAVORITES_TREE_EXPANDED_STORAGE_KEY = 'notes-sidebar-favorites-tree-expanded';
+const ALL_PAGES_EXPANDED_STORAGE_KEY = 'notes-sidebar-all-pages-expanded';
 
 function loadExpandedFromStorage(): Set<string> {
   try {
@@ -37,6 +41,61 @@ function saveExpandedToStorage(set: Set<string>) {
   }
 }
 
+function loadFavoritesExpandedFromStorage(): boolean {
+  try {
+    const raw = localStorage.getItem(FAVORITES_EXPANDED_STORAGE_KEY);
+    if (raw === null) return true;
+    return JSON.parse(raw) === true;
+  } catch {
+    return true;
+  }
+}
+
+function saveFavoritesExpandedToStorage(expanded: boolean) {
+  try {
+    localStorage.setItem(FAVORITES_EXPANDED_STORAGE_KEY, JSON.stringify(expanded));
+  } catch {
+    // ignore
+  }
+}
+
+function loadFavoritesTreeExpandedFromStorage(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FAVORITES_TREE_EXPANDED_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveFavoritesTreeExpandedToStorage(set: Set<string>) {
+  try {
+    localStorage.setItem(FAVORITES_TREE_EXPANDED_STORAGE_KEY, JSON.stringify([...set]));
+  } catch {
+    // ignore
+  }
+}
+
+function loadAllPagesExpandedFromStorage(): boolean {
+  try {
+    const raw = localStorage.getItem(ALL_PAGES_EXPANDED_STORAGE_KEY);
+    if (raw === null) return true;
+    return JSON.parse(raw) === true;
+  } catch {
+    return true;
+  }
+}
+
+function saveAllPagesExpandedToStorage(expanded: boolean) {
+  try {
+    localStorage.setItem(ALL_PAGES_EXPANDED_STORAGE_KEY, JSON.stringify(expanded));
+  } catch {
+    // ignore
+  }
+}
+
 export function useNotesTree() {
   const navigate = useNavigate();
   const { id: activeId } = useParams<{ id: string }>();
@@ -46,9 +105,19 @@ export function useNotesTree() {
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
   const moveNote = useMoveNote();
+  const setNoteFavorite = useSetNoteFavorite();
 
   const [expanded, setExpanded] = useState<Set<string>>(() =>
     loadExpandedFromStorage()
+  );
+  const [favoritesExpanded, setFavoritesExpanded] = useState<boolean>(() =>
+    loadFavoritesExpandedFromStorage()
+  );
+  const [favoritesTreeExpanded, setFavoritesTreeExpanded] = useState<Set<string>>(() =>
+    loadFavoritesTreeExpandedFromStorage()
+  );
+  const [allPagesExpanded, setAllPagesExpanded] = useState<boolean>(() =>
+    loadAllPagesExpandedFromStorage()
   );
 
   const { byId, childrenByParent } = useMemo(() => {
@@ -66,12 +135,50 @@ export function useNotesTree() {
     [childrenByParent]
   );
 
+  const favoriteIds = useMemo(
+    () =>
+      (notes ?? [])
+        .filter((n) => n.is_favorite)
+        .sort(
+          (a, b) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        )
+        .map((n) => n.id),
+    [notes]
+  );
+
+  const toggleFavoritesExpand = useCallback(() => {
+    setFavoritesExpanded((prev) => {
+      const next = !prev;
+      saveFavoritesExpandedToStorage(next);
+      return next;
+    });
+  }, []);
+
+  const toggleAllPagesExpand = useCallback(() => {
+    setAllPagesExpanded((prev) => {
+      const next = !prev;
+      saveAllPagesExpandedToStorage(next);
+      return next;
+    });
+  }, []);
+
   const toggleExpand = useCallback((id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       saveExpandedToStorage(next);
+      return next;
+    });
+  }, []);
+
+  const toggleFavoritesTreeExpand = useCallback((id: string) => {
+    setFavoritesTreeExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      saveFavoritesTreeExpandedToStorage(next);
       return next;
     });
   }, []);
@@ -181,6 +288,20 @@ export function useNotesTree() {
     [deleteNote, activeId, navigate]
   );
 
+  const handleAddToFavorites = useCallback(
+    async (noteId: string) => {
+      await setNoteFavorite.mutateAsync({ id: noteId, isFavorite: true });
+    },
+    [setNoteFavorite]
+  );
+
+  const handleRemoveFromFavorites = useCallback(
+    async (noteId: string) => {
+      await setNoteFavorite.mutateAsync({ id: noteId, isFavorite: false });
+    },
+    [setNoteFavorite]
+  );
+
   return {
     notes,
     isLoading,
@@ -190,14 +311,24 @@ export function useNotesTree() {
     rootIds,
     expanded,
     toggleExpand,
+    favoritesTreeExpanded,
+    toggleFavoritesTreeExpand,
+    favoriteIds,
+    favoritesExpanded,
+    toggleFavoritesExpand,
+    allPagesExpanded,
+    toggleAllPagesExpand,
     handleCreateRoot,
     handleCreateChild,
     handleMoveNote,
     handleDeletePage,
     handleNavigate,
+    handleAddToFavorites,
+    handleRemoveFromFavorites,
     activeId,
     createNote,
     deleteNote,
     moveNote,
+    setNoteFavorite,
   };
 }

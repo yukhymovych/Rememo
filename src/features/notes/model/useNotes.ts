@@ -56,6 +56,18 @@ export function useDeleteNote() {
   });
 }
 
+export function useSetNoteFavorite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) =>
+      notesApi.setNoteFavorite(id, isFavorite),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+      queryClient.invalidateQueries({ queryKey: NOTE_KEY(variables.id) });
+    },
+  });
+}
+
 type MoveNoteVariables = {
   id: string;
   payload: Parameters<typeof notesApi.moveNote>[1];

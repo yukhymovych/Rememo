@@ -17,11 +17,12 @@ export interface NoteListItem {
   parent_id?: string | null;
   sort_order?: number;
   updated_at: Date;
+  is_favorite?: boolean;
 }
 
 export async function getAllNotes(userId: string): Promise<NoteListItem[]> {
   const result = await pool.query(
-    'SELECT id, title, parent_id, sort_order, updated_at FROM notes WHERE user_id = $1 ORDER BY updated_at DESC',
+    'SELECT id, title, parent_id, sort_order, updated_at, is_favorite FROM notes WHERE user_id = $1 ORDER BY updated_at DESC',
     [userId]
   );
   return result.rows;
@@ -137,6 +138,20 @@ export async function getChildrenByParent(
     [userId, parentId]
   );
   return result.rows;
+}
+
+export async function updateNoteFavorite(
+  id: string,
+  userId: string,
+  isFavorite: boolean
+): Promise<Note | null> {
+  const result = await pool.query(
+    `UPDATE notes SET is_favorite = $1, updated_at = NOW()
+     WHERE id = $2 AND user_id = $3
+     RETURNING id, user_id, title, parent_id, rich_content, content_text, created_at, updated_at`,
+    [isFavorite, id, userId]
+  );
+  return result.rows[0] || null;
 }
 
 export async function updateSortOrdersForSiblings(

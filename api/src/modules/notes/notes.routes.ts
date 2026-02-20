@@ -12,4 +12,5 @@ notesRouter.get('/:id', notesController.getNote);
 notesRouter.post('/', notesController.createNote);
 notesRouter.put('/:id', notesController.updateNote);
 notesRouter.patch('/:id/move', notesController.moveNote);
+notesRouter.patch('/:id/favorite', notesController.setNoteFavorite);
 notesRouter.delete('/:id', notesController.deleteNote);

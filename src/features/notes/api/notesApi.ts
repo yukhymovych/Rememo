@@ -32,6 +32,13 @@ export async function deleteNote(id: string): Promise<void> {
   return http.delete<void>(`/notes/${id}`);
 }
 
+export async function setNoteFavorite(
+  id: string,
+  isFavorite: boolean
+): Promise<Note> {
+  return http.patch<Note>(`/notes/${id}/favorite`, { is_favorite: isFavorite });
+}
+
 export async function getNoteEmbeds(noteId: string): Promise<NoteListItem[]> {
   return http.get<NoteListItem[]>(`/notes/${noteId}/embeds`);
 }

@@ -13,6 +13,8 @@ export function TreeNode({
   toggleExpand,
   onCreateChild,
   onDeletePage,
+  onAddToFavorites,
+  onRemoveFromFavorites,
   onMoveNote,
   isDeleting,
   navigate,
@@ -52,9 +54,12 @@ export function TreeNode({
       hasChildren={hasChildren}
       isExpanded={isExpanded}
       isActive={isActive}
+      isFavorite={node.is_favorite ?? false}
       toggleExpand={toggleExpand}
       onCreateChild={onCreateChild}
       onDeletePage={onDeletePage}
+      onAddToFavorites={onAddToFavorites}
+      onRemoveFromFavorites={onRemoveFromFavorites}
       isDeleting={isDeleting}
       navigate={navigate}
       dragHandleProps={onMoveNote ? { ...attributes, ...listeners } : undefined}
@@ -86,6 +91,8 @@ export function TreeNode({
               toggleExpand={toggleExpand}
               onCreateChild={onCreateChild}
               onDeletePage={onDeletePage}
+              onAddToFavorites={onAddToFavorites}
+              onRemoveFromFavorites={onRemoveFromFavorites}
               onMoveNote={onMoveNote}
               isDeleting={isDeleting}
               navigate={navigate}

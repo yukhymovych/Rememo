@@ -1,0 +1,27 @@
+.sidebar-favorites {
+  margin-bottom: 8px;
+}
+
+.sidebar-favorites__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.sidebar-favorites__star {
+  flex-shrink: 0;
+  color: #fbbf24;
+}
+
+.sidebar-favorites__chevron {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.sidebar-favorites__list {
+  padding-left: 4px;
+}
