@@ -1,0 +1,69 @@
+.notes-list-page__container {
+  padding: 20px;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.notes-list-page__container--error {
+  color: red;
+}
+
+.notes-list-page__header {
+  margin: 50px 0;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 600;
+}
+
+.notes-list-page__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.notes-list-page__toolbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.notes-list-page__create-error {
+  color: red;
+  margin-bottom: 10px;
+}
+
+.notes-list-page__recents {
+  margin-bottom: 24px;
+}
+
+.notes-list-page__recents-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+.notes-list-page__recents-icon {
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+
+.notes-list-page__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+.notes-list-page__list {
+  list-style: none;
+  padding: 0;
+}

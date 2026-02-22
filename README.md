@@ -1,73 +1,164 @@
-# React + TypeScript + Vite
+# Fullstack Notes Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Мінімальний fullstack Notes додаток з React TypeScript фронтендом і Node.js Express бекендом.
 
-Currently, two official plugins are available:
+## Структура проєкту
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+test-fullstack-todo/
+├── src/                    # React фронтенд
+│   ├── app/
+│   │   └── providers/     # React Query та інші провайдери
+│   ├── pages/             # Сторінки додатку
+│   ├── shared/
+│   │   ├── api/          # HTTP клієнт
+│   │   └── config/       # Конфігурація (env)
+│   └── main.tsx          # Точка входу
+│
+└── api/                   # Node.js Express бекенд
+    ├── src/
+    │   ├── server.ts     # Точка входу
+    │   ├── app.ts        # Express додаток
+    │   ├── db/           # Database connection
+    │   ├── modules/      # Модулі (notes, auth)
+    │   └── middlewares/  # Middlewares
+    └── migrations/       # Database міграції
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Швидкий старт
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 1. Фронтенд (Vite + React + TypeScript)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Встановлення залежностей
+npm install
+
+# Запуск dev сервера (http://localhost:5173)
+npm run dev
+
+# Build для production
+npm run build
 ```
+
+### 2. Бекенд (Node.js + Express + TypeScript + PostgreSQL)
+
+```bash
+cd api
+
+# Встановлення залежностей
+npm install
+
+# Налаштування .env
+cp .env.example .env
+# Відредагуйте .env з вашими налаштуваннями бази даних
+
+# Запуск міграцій
+npm run migrate:up
+
+# Запуск dev сервера (http://localhost:3001)
+npm run dev
+```
+
+Детальну документацію по API дивіться в [api/README.md](api/README.md)
+
+## Технології
+
+### Frontend
+- **Vite** - Build tool
+- **React 19** - UI библіотека
+- **TypeScript** - Типізація
+- **React Query** - Управління серверним станом
+- **Zod** - Валідація (готово до інтеграції)
+
+### Backend
+- **Node.js** - Runtime
+- **Express** - Web framework
+- **TypeScript** - Типізація
+- **PostgreSQL** - База даних
+- **pg** - PostgreSQL клієнт
+- **Zod** - Валідація вхідних даних
+- **node-pg-migrate** - Database міграції
+
+## API Ендпоінти
+
+### Auth (no token required)
+- `POST /auth/register` - Register: body `{ username, password }` → returns `{ token }`
+- `POST /auth/login` - Login: body `{ username, password }` → returns `{ token }`
+- `GET /auth/me` - Get current user (requires Bearer token)
+
+### Notes (requires Bearer token in Authorization header)
+- `GET /notes` - Отримати всі notes (user-scoped)
+- `POST /notes` - Створити нову note
+- `PATCH /notes/:id` - Оновити note
+- `DELETE /notes/:id` - Видалити note
+
+- `GET /health` - Перевірка стану сервера
+
+## Особливості архітектури
+
+### Frontend
+- **Feature Sliced Design inspired** - Чітке розділення на app, pages, shared
+- **API Layer** - Централізований HTTP клієнт (`shared/api/http.ts`)
+- **Environment config** - Типізована конфігурація з env змінних
+- **React Query** - Готовий setup для data fetching
+
+### Backend
+- **Layered Architecture** - Routes → Controllers → Services → SQL
+- **Type Safety** - Повна типізація з TypeScript
+- **Validation** - Zod схеми для валідації input
+- **SQL First** - Прямі SQL запити через pg (без ORM)
+- **CORS** - Налаштовано для `http://localhost:5173`
+- **Error Handling** - Централізований error handler middleware
+
+## Розробка
+
+### Структура коду
+
+**Frontend:**
+- `src/app/providers` - React провайдери (Query, Router, etc.)
+- `src/pages` - Компоненти сторінок
+- `src/shared/api` - HTTP клієнт та API методи
+- `src/shared/config` - Конфігурація додатку
+
+**Backend:**
+- `src/modules/notes` - Модуль notes з повним CRUD
+- `src/modules/auth` - Модуль автентифікації
+- `src/db` - Database connection pool
+- `src/middlewares` - Express middlewares
+
+## База даних
+
+### Міграції
+
+```bash
+cd api
+
+# Прогнати міграції
+npm run migrate:up
+
+# Відкотити останню міграцію
+npm run migrate:down
+
+# Створити нову міграцію
+npm run migrate:create <migration-name>
+```
+
+## Environment Variables
+
+### Frontend (.env)
+```
+VITE_API_URL=http://localhost:3001
+```
+
+### Backend (api/.env)
+```
+DATABASE_URL=postgresql://todo_user:password@localhost:5432/todo_db
+PORT=3001
+JWT_SECRET=your-secret-key-change-in-production
+```
+
+**Important:** `JWT_SECRET` is required. The server will fail to start if it is not set. Use a long random string in production.
+
+## Ліцензія
+
+MIT

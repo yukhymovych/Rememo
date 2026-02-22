@@ -2,41 +2,63 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Notes sidebar tree row hover */
+.notes-tree-row:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.bn-editor h1 {
+  font-size: 30px;
+  font-weight: 600;
+  color: white;
+  line-height: 1.5;
+  margin-top: 25px;
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.bn-editor h2 {
+  font-size: 24px;
+  font-weight: 500;
+  color: white;
+  margin-top: 20px;
 }
-
-.card {
-  padding: 2em;
+.bn-editor h3 {
+  font-size: 19px;
+  font-weight: 500;
+  color: white;
+  margin-top: 15px;
 }
-
-.read-the-docs {
-  color: #888;
+.bn-editor h4 {
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+}
+.bn-editor h5 {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+}
+.bn-editor h6 {
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+.bn-editor p {
+  font-size: 15px;
+  color: white;
+  line-height: 1.9;
+}
+.bn-editor .bn-block-content[data-content-type=codeBlock] {
+  font-size: 14px;
+  margin: 5px 0;
+}
+.bn-editor blockquote {
+  font-size: 15px;
+  line-height: 1.9;
+  font-style: italic;
+  color: rgb(184, 184, 184);
+  margin: 10px 0;
+}
+.bn-container .ProseMirror{
+  background-color: rgb(26, 26, 26);
 }
