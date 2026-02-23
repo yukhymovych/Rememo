@@ -13,7 +13,12 @@ import {
   useNotesQuery,
   useNoteEmbeds,
   useUpdateNoteLastVisited,
+  useSetNoteFavorite,
+  NOTE_KEY,
 } from './useNotes';
+import { useQueryClient } from '@tanstack/react-query';
+import * as notesApi from '../api/notesApi';
+import { createChildNote } from '../lib/createChildNote';
 import { DEFAULT_NOTE_TITLE } from './types';
 import { EmbeddedPageBlock } from '../blocks/EmbeddedPageBlock';
 import { ensureBlocksArray, DEFAULT_BLOCKS } from '../lib/blocks';
@@ -24,12 +29,14 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function useNoteEditor(id: string | undefined) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: note, isLoading, error } = useNoteQuery(id, true);
   const { data: notes } = useNotesQuery();
   const { data: embeds } = useNoteEmbeds(id, !!id);
   const updateMutation = useUpdateNote();
   const deleteMutation = useDeleteNote();
   const createMutation = useCreateNote();
+  const setNoteFavorite = useSetNoteFavorite();
   const updateLastVisited = useUpdateNoteLastVisited();
 
   const [title, setTitle] = useState('');
@@ -98,12 +105,54 @@ export function useNoteEditor(id: string | undefined) {
     [scheduleSave],
   );
 
-  const handleDelete = useCallback(async () => {
-    if (!id) return;
-    if (!window.confirm('Delete this note?')) return;
-    await deleteMutation.mutateAsync(id);
-    navigate(notesRoutes.list());
-  }, [id, deleteMutation, navigate]);
+  const handleDelete = useCallback(
+    async (noteId?: string) => {
+      const targetId = noteId ?? id;
+      if (!targetId) return;
+      if (!window.confirm('Delete this note?')) return;
+      await deleteMutation.mutateAsync(targetId);
+      navigate(notesRoutes.list());
+    },
+    [id, deleteMutation, navigate]
+  );
+
+  const handleAddToFavorites = useCallback(
+    async (noteId: string) => {
+      await setNoteFavorite.mutateAsync({ id: noteId, isFavorite: true });
+    },
+    [setNoteFavorite]
+  );
+
+  const handleRemoveFromFavorites = useCallback(
+    async (noteId: string) => {
+      await setNoteFavorite.mutateAsync({ id: noteId, isFavorite: false });
+    },
+    [setNoteFavorite]
+  );
+
+  const handleCreateChild = useCallback(
+    async (parentId: string) => {
+      const child = await createChildNote(parentId, {
+        createNote: (payload) =>
+          createMutation.mutateAsync({
+            title: payload.title,
+            parent_id: payload.parent_id,
+            rich_content: payload.rich_content,
+          }),
+        updateNote: (noteId, payload) =>
+          updateMutation.mutateAsync({ id: noteId, payload }),
+        getParentNote: async (parentNoteId) => {
+          const cached = queryClient.getQueryData<{
+            title?: string;
+            rich_content?: unknown;
+          }>(NOTE_KEY(parentNoteId));
+          return cached ?? notesApi.getNote(parentNoteId);
+        },
+      });
+      navigate(notesRoutes.editor(child.id));
+    },
+    [createMutation, updateMutation, queryClient, navigate]
+  );
 
   const getSlashMenuItems = useCallback(
     async (query: string) => {
@@ -150,7 +199,11 @@ export function useNoteEditor(id: string | undefined) {
     handleTitleChange,
     saveStatus,
     handleDelete,
+    handleAddToFavorites,
+    handleRemoveFromFavorites,
+    handleCreateChild,
     isDeleting: deleteMutation.isPending,
+    isFavorite: notes?.find((n) => n.id === id)?.is_favorite ?? false,
     noteTitlesMap,
     getSlashMenuItems,
   };

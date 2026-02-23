@@ -1,5 +1,7 @@
 import { NoteBreadcrumbs } from '../NoteBreadcrumbs';
-import { Button } from '@/shared/ui';
+import { NotePageActionsMenu } from '../NotePageActionsMenu';
+import { Button, DropdownMenu, DropdownMenuTrigger } from '@/shared/ui';
+import { MoreVertical } from 'lucide-react';
 import type { SaveStatus } from '../../model/useNoteEditor';
 import type { NoteEditorToolbarProps } from './NoteEditorToolbar.types';
 
@@ -22,6 +24,10 @@ export function NoteEditorToolbar({
   notes,
   currentTitle,
   saveStatus,
+  isFavorite,
+  onAddToFavorites,
+  onRemoveFromFavorites,
+  onCreateChild,
   onDelete,
   isDeleting,
 }: NoteEditorToolbarProps) {
@@ -43,9 +49,22 @@ export function NoteEditorToolbar({
         <span style={{ fontSize: '13px', color: SAVE_STATUS_COLOR[saveStatus] }}>
           {SAVE_STATUS_LABEL[saveStatus]}
         </span>
-        <Button variant="danger" onClick={onDelete} disabled={isDeleting}>
-          {isDeleting ? 'Deleting...' : 'Delete'}
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" icon title="Page options" style={{ opacity: 0.7 }}>
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <NotePageActionsMenu
+            noteId={activeId}
+            isFavorite={isFavorite}
+            onAddToFavorites={onAddToFavorites}
+            onRemoveFromFavorites={onRemoveFromFavorites}
+            onCreateChild={onCreateChild}
+            onDelete={onDelete}
+            isDeleting={isDeleting}
+          />
+        </DropdownMenu>
       </div>
     </div>
   );

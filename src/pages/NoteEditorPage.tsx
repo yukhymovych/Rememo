@@ -19,11 +19,23 @@ export function NoteEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const {
-    note, isLoading, error,
-    notes, embeds, editor,
-    title, handleTitleChange,
-    saveStatus, handleDelete, isDeleting,
-    noteTitlesMap, getSlashMenuItems,
+    note,
+    isLoading,
+    error,
+    notes,
+    embeds,
+    editor,
+    title,
+    handleTitleChange,
+    saveStatus,
+    handleDelete,
+    handleAddToFavorites,
+    handleRemoveFromFavorites,
+    handleCreateChild,
+    isDeleting,
+    isFavorite,
+    noteTitlesMap,
+    getSlashMenuItems,
   } = useNoteEditor(id);
 
   if (isLoading || !id) {
@@ -45,6 +57,10 @@ export function NoteEditorPage() {
         notes={notes}
         currentTitle={title.trim() || note.title || DEFAULT_NOTE_TITLE}
         saveStatus={saveStatus}
+        isFavorite={isFavorite}
+        onAddToFavorites={handleAddToFavorites}
+        onRemoveFromFavorites={handleRemoveFromFavorites}
+        onCreateChild={handleCreateChild}
         onDelete={handleDelete}
         isDeleting={isDeleting}
       />

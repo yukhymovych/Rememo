@@ -1,10 +1,9 @@
 import type { NoteItem } from '../treeUtils';
 import { DEFAULT_NOTE_TITLE } from '../../../model/types';
+import { NotePageActionsMenu } from '../../NotePageActionsMenu';
 import {
   Button,
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui';
 import { cn } from '@/lib/utils';
@@ -111,31 +110,15 @@ export function TreeNodeRow({
               <MoreVertical className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {isFavorite ? (
-              <DropdownMenuItem
-                onClick={() => onRemoveFromFavorites?.(nodeId)}
-              >
-                Remove from Favorites
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem
-                onClick={() => onAddToFavorites?.(nodeId)}
-              >
-                Add to Favorites
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => onCreateChild(nodeId)}>
-              Add new page
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => onDeletePage(nodeId)}
-              disabled={isDeleting}
-            >
-              Delete page
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          <NotePageActionsMenu
+            noteId={nodeId}
+            isFavorite={isFavorite}
+            onAddToFavorites={onAddToFavorites}
+            onRemoveFromFavorites={onRemoveFromFavorites}
+            onCreateChild={onCreateChild}
+            onDelete={onDeletePage}
+            isDeleting={isDeleting}
+          />
         </DropdownMenu>
       </div>
     </div>
