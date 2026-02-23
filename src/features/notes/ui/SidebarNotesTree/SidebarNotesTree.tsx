@@ -6,6 +6,7 @@ import { DndContextWrapper } from './DndContextWrapper';
 import { DropZone } from './DropZone';
 import { SidebarRecentsList } from '../SidebarRecentsList/SidebarRecentsList';
 import { SidebarFavoritesList } from '../SidebarFavoritesList/SidebarFavoritesList';
+import { LearningSidebarCard } from '@/features/learning/ui/LearningSidebarCard';
 import { Button } from '@/shared/ui';
 import { UserInfo } from '@/app/components/UserInfo';
 import './SidebarNotesTree.css';
@@ -94,6 +95,7 @@ export function SidebarNotesTree() {
       >
         {createNote.isPending ? 'Creating...' : 'New page'}
       </Button>
+      <LearningSidebarCard />
       <SidebarRecentsList
         recentIds={recentIds}
         byId={byId}

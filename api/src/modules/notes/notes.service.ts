@@ -235,27 +235,29 @@ export async function moveNote(
       reordered
     );
 
-    const parentNote = await notesSQL.getNoteById(newParentId!, userId);
-    if (parentNote && Array.isArray(parentNote.rich_content)) {
-      const contentText = extractContentText(parentNote.rich_content);
-      const updatedBlocks = reorderEmbeddedBlocks(
-        parentNote.rich_content as BlockLike[],
-        reordered
-      );
-      await notesSQL.updateNote(
-        newParentId,
-        userId,
-        parentNote.title,
-        updatedBlocks,
-        contentText,
-        undefined
-      );
-      const embeddedIds = extractEmbeddedNoteIds(updatedBlocks);
-      const validIds = await noteEmbedsSQL.filterValidEmbeddedIds(
-        userId,
-        embeddedIds
-      );
-      await noteEmbedsSQL.replaceNoteEmbeds(userId, newParentId, validIds);
+    if (newParentId) {
+      const parentNote = await notesSQL.getNoteById(newParentId, userId);
+      if (parentNote && Array.isArray(parentNote.rich_content)) {
+        const contentText = extractContentText(parentNote.rich_content);
+        const updatedBlocks = reorderEmbeddedBlocks(
+          parentNote.rich_content as BlockLike[],
+          reordered
+        );
+        await notesSQL.updateNote(
+          newParentId,
+          userId,
+          parentNote.title,
+          updatedBlocks,
+          contentText,
+          undefined
+        );
+        const embeddedIds = extractEmbeddedNoteIds(updatedBlocks);
+        const validIds = await noteEmbedsSQL.filterValidEmbeddedIds(
+          userId,
+          embeddedIds
+        );
+        await noteEmbedsSQL.replaceNoteEmbeds(userId, newParentId, validIds);
+      }
     }
     return notesSQL.getNoteById(noteId, userId);
   }

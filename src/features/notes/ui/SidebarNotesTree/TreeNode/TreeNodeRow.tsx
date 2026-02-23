@@ -113,6 +113,7 @@ export function TreeNodeRow({
           <NotePageActionsMenu
             noteId={nodeId}
             isFavorite={isFavorite}
+            hasChildren={hasChildren}
             onAddToFavorites={onAddToFavorites}
             onRemoveFromFavorites={onRemoveFromFavorites}
             onCreateChild={onCreateChild}

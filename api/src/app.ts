@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { notesRouter } from './modules/notes/notes.routes.js';
+import { learningRouter } from './modules/learning/learning.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 if (!process.env.JWT_SECRET) {
@@ -22,5 +23,6 @@ app.get('/health', (_req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/notes', notesRouter);
+app.use('/learning', learningRouter);
 
 app.use(errorHandler);
