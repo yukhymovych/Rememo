@@ -4,6 +4,7 @@ export {
   useStartLearningSession,
   useStartScopedLearningSession,
   useResetSessionDebug,
+  useDeleteFutureSessionsDebug,
   useRefillSessionDebug,
 } from './useStartLearningSession';
 export {

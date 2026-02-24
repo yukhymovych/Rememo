@@ -14,6 +14,10 @@ learningRouter.post(
   learningController.resetSessionDebug
 );
 learningRouter.post(
+  '/session/delete-future-debug',
+  learningController.deleteFutureSessionsDebug
+);
+learningRouter.post(
   '/session/refill-debug',
   learningController.refillSessionDebug
 );

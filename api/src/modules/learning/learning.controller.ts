@@ -220,6 +220,28 @@ export async function resetSessionDebug(
   }
 }
 
+export async function deleteFutureSessionsDebug(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const timezoneParam = req.query.timezone;
+    const timezone = await learningService.resolveTimezone(
+      userId,
+      typeof timezoneParam === 'string' ? timezoneParam : undefined
+    );
+    const data = await learningService.deleteFutureSessionsDebug(
+      userId,
+      timezone
+    );
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function refillSessionDebug(
   req: Request,
   res: Response,

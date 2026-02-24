@@ -241,7 +241,9 @@ export async function gradeByPage(
 
     const now = new Date();
     const intervalDays = GRADE_INTERVALS_DAYS[grade];
-    const dueAt = addDays(now, intervalDays);
+    const baseDate =
+      studyItem.due_at > now ? studyItem.due_at : now;
+    const dueAt = addDays(baseDate, intervalDays);
     const position = await learningSQL.getMaxPositionInSession(
       client,
       session.id
@@ -315,6 +317,16 @@ export async function resetSessionDebug(userId: string, timezone: string) {
   const deleted = await learningSQL.deleteSessionByUserAndDay(userId, dayKey);
   const reset = await learningSQL.resetStudyItemsDueAt(userId);
   return { deleted: deleted > 0, resetCount: reset };
+}
+
+/** Debug: delete future sessions (day_key > today). Returns deleted count. */
+export async function deleteFutureSessionsDebug(
+  userId: string,
+  timezone: string
+) {
+  const todayKey = getDayKey(timezone);
+  const deleted = await learningSQL.deleteFutureSessions(userId, todayKey);
+  return { deleted };
 }
 
 /** Debug: add up to 15 more items to today's session from active study_items */

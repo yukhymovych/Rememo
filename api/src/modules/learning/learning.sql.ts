@@ -73,6 +73,18 @@ export async function resetStudyItemsDueAt(userId: string): Promise<number> {
   return result.rowCount ?? 0;
 }
 
+/** Debug: delete sessions where day_key > todayKey (future sessions). Returns deleted count. */
+export async function deleteFutureSessions(
+  userId: string,
+  todayKey: string
+): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM learning_sessions WHERE user_id = $1 AND day_key > $2`,
+    [userId, todayKey]
+  );
+  return result.rowCount ?? 0;
+}
+
 export async function createSession(
   userId: string,
   dayKey: string

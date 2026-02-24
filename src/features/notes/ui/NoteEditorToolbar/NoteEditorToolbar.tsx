@@ -36,6 +36,7 @@ export function NoteEditorToolbar({
   const { data: studyStatus } = useStudyItemStatus(activeId);
   const showDueAt =
     studyStatus?.status === 'active' && studyStatus?.dueAt;
+    console.log(studyStatus);
 
   return (
     <div
@@ -59,7 +60,9 @@ export function NoteEditorToolbar({
             }}
             title={`Next review: ${new Date(studyStatus.dueAt!).toLocaleString()}`}
           >
-            Next review: {formatDueDate(studyStatus.dueAt!)}
+            Next review: {formatDueDate(studyStatus.dueAt!)} (
+              {new Date(studyStatus.dueAt!).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            )
           </span>
         )}
       </div>

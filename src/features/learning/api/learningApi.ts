@@ -30,6 +30,15 @@ export async function resetSessionDebug(
   );
 }
 
+export async function deleteFutureSessionsDebug(
+  timezone?: string
+): Promise<{ deleted: number }> {
+  const tz = timezone ?? 'UTC';
+  return http.post<{ deleted: number }>(
+    `/learning/session/delete-future-debug?timezone=${encodeURIComponent(tz)}`
+  );
+}
+
 export async function refillSessionDebug(
   timezone?: string
 ): Promise<TodaySessionResponse | null> {

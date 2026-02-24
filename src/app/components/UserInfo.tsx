@@ -1,5 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 import { decodeTokenPayload } from '@/shared/lib/auth';
+import { useDeleteFutureSessionsDebug } from '@/features/learning/model/useStartLearningSession';
 import {
   Avatar,
   AvatarFallback,
@@ -9,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui';
-import { LogOut } from 'lucide-react';
+import { LogOut, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function getInitials(username: string): string {
@@ -24,6 +25,7 @@ export function UserInfo() {
   const { token, logout } = useAuth();
   const payload = token ? decodeTokenPayload(token) : null;
   const username = payload?.username ?? 'User';
+  const deleteFutureSessions = useDeleteFutureSessionsDebug();
 
   return (
     <DropdownMenu>
@@ -44,6 +46,16 @@ export function UserInfo() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem
+          onClick={() => deleteFutureSessions.mutate(undefined)}
+          disabled={deleteFutureSessions.isPending}
+          className="text-muted-foreground"
+        >
+          <Trash2 className="size-4" />
+          {deleteFutureSessions.isPending
+            ? 'Deleting...'
+            : 'Delete future sessions (debug)'}
+        </DropdownMenuItem>
         <DropdownMenuItem variant="destructive" onClick={logout}>
           <LogOut className="size-4" />
           Logout
