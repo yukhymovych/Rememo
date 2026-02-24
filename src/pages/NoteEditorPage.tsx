@@ -1,11 +1,9 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useNoteEditor } from '../features/notes/model/useNoteEditor';
-import { notesRoutes } from '../features/notes/lib/routes';
 import { DEFAULT_NOTE_TITLE } from '../features/notes/model/types';
 import { NoteEditorToolbar } from '../features/notes/ui/NoteEditorToolbar';
 import { NoteTitleInput } from '../features/notes/ui/NoteTitleInput';
 import { NoteEditorBody } from '../features/notes/ui/NoteEditorBody';
-import { NoteEmbedsList } from '../features/notes/ui/NoteEmbedsList';
 import { NoteEditorLearningGradeBar } from '../features/learning/ui/NoteEditorLearningGradeBar';
 
 const contentStyles = {
@@ -18,13 +16,11 @@ const contentStyles = {
 
 export function NoteEditorPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const {
     note,
     isLoading,
     error,
     notes,
-    embeds,
     editor,
     title,
     handleTitleChange,
@@ -71,12 +67,6 @@ export function NoteEditorPage() {
         noteTitlesMap={noteTitlesMap}
         getSlashMenuItems={getSlashMenuItems}
       />
-      {embeds && embeds.length > 0 && (
-        <NoteEmbedsList
-          embeds={embeds}
-          onNavigate={(embedId) => navigate(notesRoutes.editor(embedId))}
-        />
-      )}
       <NoteEditorLearningGradeBar noteId={id} />
     </div>
   );

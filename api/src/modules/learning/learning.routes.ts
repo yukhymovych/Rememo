@@ -10,6 +10,10 @@ learningRouter.post('/session/start', learningController.startSession);
 learningRouter.post('/session/start-scoped', learningController.startScopedSession);
 learningRouter.get('/session/today', learningController.getTodaySession);
 learningRouter.post(
+  '/session/reset-debug',
+  learningController.resetSessionDebug
+);
+learningRouter.post(
   '/session/refill-debug',
   learningController.refillSessionDebug
 );

@@ -3,6 +3,7 @@ export { useDueStudyItemsCount } from './useDueStudyItemsCount';
 export {
   useStartLearningSession,
   useStartScopedLearningSession,
+  useResetSessionDebug,
   useRefillSessionDebug,
 } from './useStartLearningSession';
 export {

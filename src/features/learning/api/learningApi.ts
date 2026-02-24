@@ -21,6 +21,15 @@ export async function startScopedSession(
   });
 }
 
+export async function resetSessionDebug(
+  timezone?: string
+): Promise<{ deleted: boolean; resetCount: number }> {
+  const tz = timezone ?? 'UTC';
+  return http.post<{ deleted: boolean; resetCount: number }>(
+    `/learning/session/reset-debug?timezone=${encodeURIComponent(tz)}`
+  );
+}
+
 export async function refillSessionDebug(
   timezone?: string
 ): Promise<TodaySessionResponse | null> {

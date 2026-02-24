@@ -52,6 +52,27 @@ export async function getSessionByUserAndDay(
   return result.rows[0] || null;
 }
 
+/** Debug: delete today's session (items cascade). Returns deleted count. */
+export async function deleteSessionByUserAndDay(
+  userId: string,
+  dayKey: string
+): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM learning_sessions WHERE user_id = $1 AND day_key = $2`,
+    [userId, dayKey]
+  );
+  return result.rowCount ?? 0;
+}
+
+/** Debug: reset due_at to NOW() for all active study items of a user */
+export async function resetStudyItemsDueAt(userId: string): Promise<number> {
+  const result = await pool.query(
+    `UPDATE study_items SET due_at = NOW() WHERE user_id = $1 AND is_active = true`,
+    [userId]
+  );
+  return result.rowCount ?? 0;
+}
+
 export async function createSession(
   userId: string,
   dayKey: string

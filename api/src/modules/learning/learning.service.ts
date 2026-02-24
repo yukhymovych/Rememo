@@ -309,6 +309,14 @@ export async function getDueStudyItemsCount(userId: string): Promise<number> {
   return learningSQL.getDueStudyItemsCount(userId);
 }
 
+/** Debug: delete today's session and reset study items due_at for a fresh session */
+export async function resetSessionDebug(userId: string, timezone: string) {
+  const dayKey = getDayKey(timezone);
+  const deleted = await learningSQL.deleteSessionByUserAndDay(userId, dayKey);
+  const reset = await learningSQL.resetStudyItemsDueAt(userId);
+  return { deleted: deleted > 0, resetCount: reset };
+}
+
 /** Debug: add up to 15 more items to today's session from active study_items */
 export async function refillSessionDebug(
   userId: string,

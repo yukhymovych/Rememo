@@ -201,6 +201,25 @@ export async function deactivateStudyItem(
   }
 }
 
+export async function resetSessionDebug(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const timezoneParam = req.query.timezone;
+    const timezone = await learningService.resolveTimezone(
+      userId,
+      typeof timezoneParam === 'string' ? timezoneParam : undefined
+    );
+    const data = await learningService.resetSessionDebug(userId, timezone);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function refillSessionDebug(
   req: Request,
   res: Response,

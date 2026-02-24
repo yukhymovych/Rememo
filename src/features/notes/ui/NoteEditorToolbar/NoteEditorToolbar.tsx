@@ -1,5 +1,7 @@
 import { NoteBreadcrumbs } from '../NoteBreadcrumbs';
 import { NotePageActionsMenu } from '../NotePageActionsMenu';
+import { useStudyItemStatus } from '@/features/learning/model/useStudyItemStatus';
+import { formatDueDate } from '../../domain/formatDate';
 import { Button, DropdownMenu, DropdownMenuTrigger } from '@/shared/ui';
 import { MoreVertical } from 'lucide-react';
 import type { SaveStatus } from '../../model/useNoteEditor';
@@ -31,6 +33,10 @@ export function NoteEditorToolbar({
   onDelete,
   isDeleting,
 }: NoteEditorToolbarProps) {
+  const { data: studyStatus } = useStudyItemStatus(activeId);
+  const showDueAt =
+    studyStatus?.status === 'active' && studyStatus?.dueAt;
+
   return (
     <div
       style={{
@@ -42,8 +48,20 @@ export function NoteEditorToolbar({
         flexWrap: 'wrap',
       }}
     >
-      <div style={{ minWidth: 0, flex: 1 }}>
+      <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
         <NoteBreadcrumbs activeId={activeId} notes={notes} currentTitle={currentTitle} />
+        {showDueAt && (
+          <span
+            style={{
+              fontSize: '12px',
+              color: 'var(--muted-foreground, #6b7280)',
+              whiteSpace: 'nowrap',
+            }}
+            title={`Next review: ${new Date(studyStatus.dueAt!).toLocaleString()}`}
+          >
+            Next review: {formatDueDate(studyStatus.dueAt!)}
+          </span>
+        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <span style={{ fontSize: '13px', color: SAVE_STATUS_COLOR[saveStatus] }}>
