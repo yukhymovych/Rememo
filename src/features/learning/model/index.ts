@@ -15,6 +15,7 @@ export {
   useSubmitGradeByPage,
 } from './useSubmitLearningGrade';
 export { useStudyItemStatus } from './useStudyItemStatus';
+export { useDescendantsWithLearningCount } from './useDescendantsWithLearningCount';
 export {
   useActivateLearningPage,
   useActivateLearningPageScoped,

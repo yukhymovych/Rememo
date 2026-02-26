@@ -268,6 +268,60 @@ export async function getSessionItemBySessionAndNote(
   return result.rows[0] || null;
 }
 
+/** Returns IDs of pending session_items for the same note in today's other sessions (for grade sync). */
+export async function getOtherPendingSessionItemIdsForNoteToday(
+  client: PoolClient,
+  userId: string,
+  excludeSessionId: string,
+  noteId: string,
+  dayKey: string
+): Promise<string[]> {
+  const result = await client.query(
+    `SELECT lsi.id
+     FROM learning_session_items lsi
+     JOIN learning_sessions ls ON ls.id = lsi.session_id AND ls.user_id = $1 AND ls.day_key = $2
+     WHERE ls.id != $3 AND lsi.note_id = $4 AND lsi.state = 'pending'`,
+    [userId, dayKey, excludeSessionId, noteId]
+  );
+  return result.rows.map((r) => r.id as string);
+}
+
+/** Returns first pending session_item for note in any of today's sessions, or null. */
+export async function getPendingSessionItemForNoteInTodaySessions(
+  userId: string,
+  noteId: string,
+  dayKey: string
+): Promise<{ id: string; session_id: string } | null> {
+  const result = await pool.query(
+    `SELECT lsi.id, lsi.session_id
+     FROM learning_session_items lsi
+     JOIN learning_sessions ls ON ls.id = lsi.session_id AND ls.user_id = $1 AND ls.day_key = $2
+     WHERE lsi.note_id = $3 AND lsi.state = 'pending'
+     LIMIT 1`,
+    [userId, dayKey, noteId]
+  );
+  const row = result.rows[0];
+  return row ? { id: row.id as string, session_id: row.session_id as string } : null;
+}
+
+/** Returns first session_item for note in any of today's sessions (any state), or null. */
+export async function getAnySessionItemForNoteInTodaySessions(
+  userId: string,
+  noteId: string,
+  dayKey: string
+): Promise<{ id: string; state: string } | null> {
+  const result = await pool.query(
+    `SELECT lsi.id, lsi.state
+     FROM learning_session_items lsi
+     JOIN learning_sessions ls ON ls.id = lsi.session_id AND ls.user_id = $1 AND ls.day_key = $2
+     WHERE lsi.note_id = $3
+     LIMIT 1`,
+    [userId, dayKey, noteId]
+  );
+  const row = result.rows[0];
+  return row ? { id: row.id as string, state: row.state as string } : null;
+}
+
 export async function getStudyItemByUserAndNote(
   userId: string,
   noteId: string
@@ -377,6 +431,18 @@ export async function markSessionItemUnavailable(
     `UPDATE learning_session_items SET state = 'unavailable' WHERE id = $1`,
     [itemId]
   );
+}
+
+/** Mark all session items referencing this note as unavailable (e.g. when note is deleted). */
+export async function markSessionItemsUnavailableByNoteId(
+  noteId: string
+): Promise<number> {
+  const result = await pool.query(
+    `UPDATE learning_session_items SET state = 'unavailable'
+     WHERE note_id = $1 AND state = 'pending'`,
+    [noteId]
+  );
+  return result.rowCount ?? 0;
 }
 
 export async function updateStudyItemAfterReview(
@@ -491,6 +557,26 @@ export interface ScopedSessionSummary {
   rootTitle: string;
   done: number;
   total: number;
+}
+
+/** Returns count of descendants of rootNoteId that have active study_items. */
+export async function getDescendantsWithLearningCount(
+  userId: string,
+  rootNoteId: string
+): Promise<number> {
+  const result = await pool.query(
+    `WITH RECURSIVE descendants AS (
+       SELECT id FROM notes WHERE parent_id = $1 AND user_id = $2
+       UNION ALL
+       SELECT n.id FROM notes n
+       JOIN descendants d ON n.parent_id = d.id AND n.user_id = $2
+     )
+     SELECT COUNT(*)::int AS cnt
+     FROM descendants d
+     JOIN study_items si ON si.note_id = d.id AND si.user_id = $2 AND si.is_active = true`,
+    [rootNoteId, userId]
+  );
+  return result.rows[0]?.cnt ?? 0;
 }
 
 export async function getStudyItemsByNoteIds(

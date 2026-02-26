@@ -6,6 +6,7 @@ import {
   gradeBodySchema,
   gradeByPageBodySchema,
   studyItemStatusQuerySchema,
+  descendantsWithLearningQuerySchema,
   activateBodySchema,
   activateScopedBodySchema,
   deactivateBodySchema,
@@ -342,6 +343,24 @@ export async function getDueStudyItemsCount(
   try {
     const userId = req.user!.id;
     const count = await learningService.getDueStudyItemsCount(userId);
+    res.json({ count });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getDescendantsWithLearningCount(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const { rootNoteId } = descendantsWithLearningQuerySchema.parse(req.query);
+    const count = await learningService.getDescendantsWithLearningCount(
+      userId,
+      rootNoteId
+    );
     res.json({ count });
   } catch (error) {
     next(error);

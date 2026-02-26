@@ -8,8 +8,9 @@ export interface LearningSummaryProps {
 
 export function LearningSummary({ items }: LearningSummaryProps) {
   const navigate = useNavigate();
-  const doneCount = items.filter((i) => i.state === 'done').length;
-  const totalCount = items.length;
+  const reviewableItems = items.filter((i) => i.state !== 'unavailable');
+  const doneCount = reviewableItems.filter((i) => i.state === 'done').length;
+  const totalCount = reviewableItems.length;
 
   return (
     <div className="learning-summary">

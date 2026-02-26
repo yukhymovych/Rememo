@@ -127,6 +127,14 @@ export async function getDueStudyItemsCount(): Promise<number> {
   return res.count;
 }
 
+export async function getDescendantsWithLearningCount(
+  rootNoteId: string
+): Promise<{ count: number }> {
+  return http.get<{ count: number }>(
+    `/learning/study-items/descendants-with-learning-count?rootNoteId=${encodeURIComponent(rootNoteId)}`
+  );
+}
+
 export async function getStudyItemStatus(
   pageId: string,
   timezone?: string

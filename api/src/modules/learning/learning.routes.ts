@@ -45,4 +45,8 @@ learningRouter.get(
   '/study-items/due-count',
   learningController.getDueStudyItemsCount
 );
+learningRouter.get(
+  '/study-items/descendants-with-learning-count',
+  learningController.getDescendantsWithLearningCount
+);
 learningRouter.get('/study-items/status', learningController.getStudyItemStatus);

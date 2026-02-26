@@ -1,6 +1,7 @@
 import type { NoteItem } from '../treeUtils';
 import { DEFAULT_NOTE_TITLE } from '../../../model/types';
 import { NotePageActionsMenu } from '../../NotePageActionsMenu';
+import { useDescendantsWithLearningCount } from '@/features/learning/model/useDescendantsWithLearningCount';
 import {
   Button,
   DropdownMenu,
@@ -49,6 +50,10 @@ export function TreeNodeRow({
   rowStyle,
 }: TreeNodeRowProps) {
   const paddingLeft = 12 + depth * 14;
+  const { data: descendantsWithLearning } = useDescendantsWithLearningCount(
+    hasChildren ? nodeId : undefined
+  );
+  const hasDescendantsInGlobal = (descendantsWithLearning?.count ?? 0) > 0;
 
   return (
     <div
@@ -114,6 +119,7 @@ export function TreeNodeRow({
             noteId={nodeId}
             isFavorite={isFavorite}
             hasChildren={hasChildren}
+            hasDescendantsInGlobal={hasDescendantsInGlobal}
             onAddToFavorites={onAddToFavorites}
             onRemoveFromFavorites={onRemoveFromFavorites}
             onCreateChild={onCreateChild}

@@ -23,24 +23,20 @@ export interface StudyItemForEligibility {
 }
 
 /**
- * Pure: compute eligible note IDs for scoped session from descendants,
- * excluding notes in global due list or already studied today.
+ * Pure: compute eligible note IDs for scoped session from descendants.
+ * Only includes pages in GLOBAL (active study_items). Excludes those studied today.
  */
 export function computeEligibleScopedNoteIds(params: {
   descendantIds: string[];
   studyItems: StudyItemForEligibility[];
   timezone: string;
-  dayKey: string;
 }): string[] {
-  const { descendantIds, studyItems, timezone, dayKey } = params;
-  const excludedIds = new Set<string>();
+  const { descendantIds, studyItems, timezone } = params;
+  const inGlobalAndNotStudiedToday = new Set<string>();
   for (const si of studyItems) {
-    const inGlobalDue =
-      si.is_active && isDueTodayOrPast(si.due_at, timezone, dayKey);
-    const studiedToday = isDateTodayInTimezone(si.last_reviewed_at, timezone);
-    if (inGlobalDue || studiedToday) {
-      excludedIds.add(si.note_id);
-    }
+    if (!si.is_active) continue;
+    if (isDateTodayInTimezone(si.last_reviewed_at, timezone)) continue;
+    inGlobalAndNotStudiedToday.add(si.note_id);
   }
-  return descendantIds.filter((id) => !excludedIds.has(id));
+  return descendantIds.filter((id) => inGlobalAndNotStudiedToday.has(id));
 }

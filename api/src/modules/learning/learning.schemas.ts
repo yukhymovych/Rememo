@@ -25,6 +25,10 @@ export const studyItemStatusQuerySchema = z.object({
   pageId: z.string().uuid(),
 });
 
+export const descendantsWithLearningQuerySchema = z.object({
+  rootNoteId: z.string().uuid(),
+});
+
 export const activateBodySchema = z.object({
   pageId: z.string().uuid(),
 });

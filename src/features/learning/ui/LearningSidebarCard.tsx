@@ -16,9 +16,10 @@ export function LearningSidebarCard() {
   const { data: dueCount = 0 } = useDueStudyItemsCount(!session);
   const startSession = useStartLearningSession();
 
-  const pendingCount =
-    session?.items.filter((i) => i.state === 'pending').length ?? 0;
-  const totalCount = session?.items.length ?? 0;
+  const reviewableItems =
+    session?.items.filter((i) => i.state !== 'unavailable') ?? [];
+  const pendingCount = reviewableItems.filter((i) => i.state === 'pending').length;
+  const totalCount = reviewableItems.length;
   const hasSession = !!session && totalCount > 0;
   const canContinue = hasSession && pendingCount > 0;
   const hasItemsReady = !hasSession && dueCount > 0;

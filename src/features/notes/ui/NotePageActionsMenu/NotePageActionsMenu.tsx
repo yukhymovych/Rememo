@@ -21,6 +21,7 @@ export function NotePageActionsMenu({
   noteId,
   isFavorite,
   hasChildren = false,
+  hasDescendantsInGlobal = false,
   onAddToFavorites,
   onRemoveFromFavorites,
   onCreateChild,
@@ -42,7 +43,7 @@ export function NotePageActionsMenu({
         if ('reason' in result) {
           if (result.reason === 'NO_ELIGIBLE_PAGES') {
             showToast(
-              'No eligible pages to learn. All child pages are either due in global learning or already studied today.'
+              'No eligible pages to learn. All child pages have already been studied today.'
             );
           }
           return;
@@ -98,7 +99,7 @@ export function NotePageActionsMenu({
           </DropdownMenuItem>
         )
       )}
-      {hasChildren && (
+      {hasChildren && hasDescendantsInGlobal && (
         <DropdownMenuItem
           onClick={handleLearnAllChildren}
           disabled={startScopedSession.isPending}

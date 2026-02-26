@@ -78,7 +78,6 @@ export async function startScopedSession(
     descendantIds,
     studyItems,
     timezone,
-    dayKey,
   });
   if (eligibleIds.length === 0) {
     return { created: false, reason: 'NO_ELIGIBLE_PAGES' };
@@ -98,6 +97,11 @@ export async function startScopedSession(
       total: data.items.length,
       session: data,
     };
+  }
+
+  // Ensure study_items exist for all eligible pages (needed for gradeByPage when viewing note)
+  for (const noteId of eligibleIds) {
+    await learningSQL.createStudyItem(userId, noteId);
   }
 
   const session = await learningSQL.createScopedSession(
@@ -162,6 +166,9 @@ export async function gradeSessionItem(
     return { success: true, alreadyGraded: true as const };
   }
 
+  const session = await learningSQL.getSessionById(item.session_id, userId);
+  const dayKey = session?.day_key ?? null;
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -217,6 +224,21 @@ export async function gradeSessionItem(
       );
     }
 
+    // Sync grade to same note in other today's sessions (global/scoped)
+    if (dayKey) {
+      const otherItemIds =
+        await learningSQL.getOtherPendingSessionItemIdsForNoteToday(
+          client,
+          userId,
+          item.session_id,
+          item.note_id,
+          dayKey
+        );
+      for (const otherId of otherItemIds) {
+        await learningSQL.updateSessionItemGrade(client, otherId, grade, now);
+      }
+    }
+
     await client.query('COMMIT');
     return { success: true };
   } catch (e) {
@@ -242,24 +264,26 @@ export async function gradeByPage(
   }
 
   const dayKey = getDayKey(timezone);
-  const session = await learningSQL.getSessionByUserAndDay(userId, dayKey);
-  const existingSessionItem = session
-    ? await learningSQL.getSessionItemBySessionAndNote(
-        session.id,
-        pageId,
-        userId
-      )
-    : null;
 
-  if (existingSessionItem) {
-    if (existingSessionItem.state === 'pending') {
-      const pendingItem = await learningSQL.getPendingSessionItemBySessionAndNote(
-        session!.id,
-        pageId,
-        userId
-      );
-      if (pendingItem) return gradeSessionItem(userId, pendingItem.id, grade);
-    }
+  // Check all today's sessions (global + scoped) for pending item
+  const pendingInSession =
+    await learningSQL.getPendingSessionItemForNoteInTodaySessions(
+      userId,
+      pageId,
+      dayKey
+    );
+  if (pendingInSession) {
+    return gradeSessionItem(userId, pendingInSession.id, grade);
+  }
+
+  // Check if already graded today in any session (global or scoped)
+  const anySessionItem =
+    await learningSQL.getAnySessionItemForNoteInTodaySessions(
+      userId,
+      pageId,
+      dayKey
+    );
+  if (anySessionItem && anySessionItem.state !== 'pending') {
     return { success: true, alreadyGraded: true as const };
   }
 
@@ -329,6 +353,13 @@ export async function deactivateStudyItem(userId: string, pageId: string) {
 
 export async function getDueStudyItemsCount(userId: string): Promise<number> {
   return learningSQL.getDueStudyItemsCount(userId);
+}
+
+export async function getDescendantsWithLearningCount(
+  userId: string,
+  rootNoteId: string
+): Promise<number> {
+  return learningSQL.getDescendantsWithLearningCount(userId, rootNoteId);
 }
 
 /** Debug: delete today's session and reset study items due_at for a fresh session */

@@ -12,7 +12,8 @@ export function LearningProgressHeader({
   currentIndex,
 }: LearningProgressHeaderProps) {
   const navigate = useNavigate();
-  const totalCount = items.length;
+  const reviewableItems = items.filter((i) => i.state !== 'unavailable');
+  const totalCount = reviewableItems.length;
 
   const handleStop = () => {
     navigate('/notes');

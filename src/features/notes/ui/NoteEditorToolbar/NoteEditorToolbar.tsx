@@ -1,6 +1,7 @@
 import { NoteBreadcrumbs } from '../NoteBreadcrumbs';
 import { NotePageActionsMenu } from '../NotePageActionsMenu';
 import { useStudyItemStatus } from '@/features/learning/model/useStudyItemStatus';
+import { useDescendantsWithLearningCount } from '@/features/learning/model/useDescendantsWithLearningCount';
 import { formatDueDate } from '../../domain/formatDate';
 import { Button, DropdownMenu, DropdownMenuTrigger } from '@/shared/ui';
 import { MoreVertical } from 'lucide-react';
@@ -34,6 +35,11 @@ export function NoteEditorToolbar({
   isDeleting,
 }: NoteEditorToolbarProps) {
   const { data: studyStatus } = useStudyItemStatus(activeId);
+  const hasChildren = notes?.some((n) => n.parent_id === activeId) ?? false;
+  const { data: descendantsWithLearning } = useDescendantsWithLearningCount(
+    hasChildren ? activeId : undefined
+  );
+  const hasDescendantsInGlobal = (descendantsWithLearning?.count ?? 0) > 0;
   const showDueAt =
     studyStatus?.status === 'active' && studyStatus?.dueAt;
 
@@ -78,7 +84,8 @@ export function NoteEditorToolbar({
           <NotePageActionsMenu
             noteId={activeId}
             isFavorite={isFavorite}
-            hasChildren={notes?.some((n) => n.parent_id === activeId) ?? false}
+            hasChildren={hasChildren}
+            hasDescendantsInGlobal={hasDescendantsInGlobal}
             onAddToFavorites={onAddToFavorites}
             onRemoveFromFavorites={onRemoveFromFavorites}
             onCreateChild={onCreateChild}

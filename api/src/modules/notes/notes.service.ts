@@ -123,6 +123,8 @@ export async function updateNote(
 }
 
 export async function deleteNote(id: string, userId: string) {
+  const learningSQL = await import('../learning/learning.sql.js');
+  await learningSQL.markSessionItemsUnavailableByNoteId(id);
   return notesSQL.deleteNote(id, userId);
 }
 
