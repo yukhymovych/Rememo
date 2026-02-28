@@ -1,17 +1,31 @@
 import type { NoteListItem } from '../model/types';
 
 /**
- * Returns last 10 visited notes, ordered from earliest to latest by last_visited_at.
+ * Returns last N visited notes, ordered from earliest to latest by last_visited_at.
  * Pure function - no side effects.
  */
-export function getRecentNotes(notes: NoteListItem[] | undefined): NoteListItem[] {
+export function getRecentNotes(
+  notes: NoteListItem[] | undefined,
+  limit = 15
+): NoteListItem[] {
   if (!notes) return [];
-  return notes
-    .filter((n) => n.last_visited_at)
-    .sort(
-      (a, b) =>
-        new Date(a.last_visited_at!).getTime() -
-        new Date(b.last_visited_at!).getTime()
+
+  const recentWindow = notes
+    .filter(
+      (n): n is NoteListItem & { last_visited_at: string } =>
+        typeof n.last_visited_at === 'string'
     )
-    .slice(-10);
+    .map((n) => ({
+      note: n,
+      ts: new Date(n.last_visited_at).getTime(),
+    }))
+    .filter((entry) => Number.isFinite(entry.ts))
+    .sort((a, b) => {
+      if (a.ts !== b.ts) return b.ts - a.ts;
+      return a.note.id.localeCompare(b.note.id);
+    })
+    .slice(0, limit)
+    .reverse();
+
+  return recentWindow.map((entry) => entry.note);
 }

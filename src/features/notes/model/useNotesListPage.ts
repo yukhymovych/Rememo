@@ -4,6 +4,7 @@ import { useNotesQuery, useCreateNote } from './useNotes';
 import { notesRoutes } from '../lib/routes';
 import { formatRelativeTime } from '../domain/formatDate';
 import { getRecentNotes } from '../lib/recents';
+import { getFavoriteNotes } from '../lib/favorites';
 
 export function useNotesListPage() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export function useNotesListPage() {
   const createMutation = useCreateNote();
 
   const recentNotes = useMemo(() => getRecentNotes(notes), [notes]);
+  const favoriteNotes = useMemo(() => getFavoriteNotes(notes), [notes]);
 
   const recentFormattedTimes = useMemo(() => {
     const map = new Map<string, string>();
@@ -21,6 +23,16 @@ export function useNotesListPage() {
     });
     return map;
   }, [recentNotes]);
+
+  const favoriteFormattedTimes = useMemo(() => {
+    const map = new Map<string, string>();
+    favoriteNotes.forEach((n) => {
+      if (n.last_visited_at) {
+        map.set(n.id, formatRelativeTime(n.last_visited_at));
+      }
+    });
+    return map;
+  }, [favoriteNotes]);
 
   const handleNewNote = async () => {
     const note = await createMutation.mutateAsync({});
@@ -34,7 +46,9 @@ export function useNotesListPage() {
   return {
     notes,
     recentNotes,
+    favoriteNotes,
     recentFormattedTimes,
+    favoriteFormattedTimes,
     isLoading,
     error,
     createMutation,

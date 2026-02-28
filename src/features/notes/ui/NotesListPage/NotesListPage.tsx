@@ -1,14 +1,17 @@
-import { Clock } from 'lucide-react';
+import { Clock, Star } from 'lucide-react';
 import { Button } from '@/shared/ui';
 import { formatDate } from '../../domain/formatDate';
 import { NotesListItem } from '../NotesListItem';
+import { NotesSliderSection } from '../NotesSliderSection';
 import type { NotesListPageProps } from './NotesListPage.types';
 import './NotesListPage.css';
 
 export function NotesListPageView({
   notes,
   recentNotes,
+  favoriteNotes,
   recentFormattedTimes,
+  favoriteFormattedTimes,
   isLoading,
   error,
   createError,
@@ -46,46 +49,26 @@ export function NotesListPageView({
         <div className="notes-list-page__create-error">Error: {createError.message}</div>
       )}
 
-      {recentNotes.length > 0 && (
-        <section className="notes-list-page__recents">
-          <h2 className="notes-list-page__recents-title">
-            <Clock className="notes-list-page__recents-icon size-4" />
-            Recently visited
-          </h2>
-          <ul className="notes-list-page__list">
-            {recentNotes.map((note) => (
-              <NotesListItem
-                key={note.id}
-                note={note}
-                formattedDate={recentFormattedTimes.get(note.id) ?? ''}
-                onClick={() => onNoteClick(note.id)}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
+      <div className="notes-list-page__middle">
+        <NotesSliderSection
+          title="Recently visited"
+          icon={Clock}
+          notes={recentNotes}
+          formattedTimes={recentFormattedTimes}
+          onNoteClick={onNoteClick}
+        />
+        <NotesSliderSection
+          title="Favorites"
+          icon={Star}
+          notes={favoriteNotes}
+          formattedTimes={favoriteFormattedTimes}
+          onNoteClick={onNoteClick}
+        />
+      </div>
 
       <div>
-        {!notes || notes.length === 0 ? (
+        {!notes || notes.length === 0 && (
           <p>No notes yet. Click &quot;New note&quot; to create one.</p>
-        ) : (
-          <>
-            {notes.filter((n) => !recentNotes.some((r) => r.id === n.id)).length > 0 && (
-              <h2 className="notes-list-page__section-title">All notes</h2>
-            )}
-            <ul className="notes-list-page__list">
-            {notes
-              .filter((note) => !recentNotes.some((r) => r.id === note.id))
-              .map((note) => (
-                <NotesListItem
-                  key={note.id}
-                  note={note}
-                  formattedDate={formatDate(note.updated_at)}
-                  onClick={() => onNoteClick(note.id)}
-                />
-              ))}
-          </ul>
-          </>
         )}
       </div>
     </div>

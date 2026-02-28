@@ -163,10 +163,12 @@ export function useNotesTree() {
     () =>
       (notes ?? [])
         .filter((n) => n.is_favorite)
-        .sort(
-          (a, b) =>
-            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        )
+        .sort((a, b) => {
+          const sortA = a.sort_order ?? 0;
+          const sortB = b.sort_order ?? 0;
+          if (sortA !== sortB) return sortA - sortB;
+          return a.id.localeCompare(b.id);
+        })
         .map((n) => n.id),
     [notes]
   );

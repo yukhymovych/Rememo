@@ -5,7 +5,9 @@ export function NotesListPage() {
   const {
     notes,
     recentNotes,
+    favoriteNotes,
     recentFormattedTimes,
+    favoriteFormattedTimes,
     isLoading,
     error,
     createMutation,
@@ -17,7 +19,9 @@ export function NotesListPage() {
     <NotesListPageView
       notes={notes}
       recentNotes={recentNotes}
+      favoriteNotes={favoriteNotes}
       recentFormattedTimes={recentFormattedTimes}
+      favoriteFormattedTimes={favoriteFormattedTimes}
       isLoading={isLoading}
       error={error}
       createError={createMutation.error}

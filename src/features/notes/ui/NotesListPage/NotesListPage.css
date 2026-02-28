@@ -37,23 +37,9 @@
   margin-bottom: 10px;
 }
 
-.notes-list-page__recents {
-  margin-bottom: 24px;
-}
-
-.notes-list-page__recents-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #9ca3af;
-  margin-bottom: 12px;
-}
-
-.notes-list-page__recents-icon {
-  flex-shrink: 0;
-  color: #9ca3af;
+.notes-list-page__middle {
+  width: min(980px, 100%);
+  margin: 0 auto 8px;
 }
 
 .notes-list-page__section-title {
