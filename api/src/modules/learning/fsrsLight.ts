@@ -9,20 +9,20 @@ const MIN_DIFFICULTY = 1;
 const MAX_DIFFICULTY = 10;
 
 const INTERVAL_MIN_DAYS = 1;
-const INTERVAL_MAX_DAYS = 60;
+const INTERVAL_MAX_DAYS = 180;
 
 const STABILITY_MULTIPLIERS: Record<Grade, number> = {
   again: 0.55,
-  hard: 1.05,
+  hard: 1,
   good: 1.2,
-  easy: 1.35,
+  easy: 1.45,
 };
 
 const DIFFICULTY_DELTAS: Record<Grade, number> = {
   again: 0.5,
   hard: 0.2,
-  good: -0.05,
-  easy: -0.15,
+  good: -0.08,
+  easy: -0.18,
 };
 
 function clamp(value: number, min: number, max: number): number {
