@@ -40,6 +40,11 @@
   margin-left: 2px;
 }
 
+.learning-sidebar-card__hint {
+  margin-top: 2px;
+  color: #6b7280;
+}
+
 .learning-sidebar-card__loading {
   color: #9ca3af;
   font-size: 12px;

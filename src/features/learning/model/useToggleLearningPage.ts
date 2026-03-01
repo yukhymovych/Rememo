@@ -28,6 +28,18 @@ export function useActivateLearningPageScoped() {
   });
 }
 
+export function useActivateLearningPageDescendantsOnly() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (scopePageId: string) =>
+      learningApi.activateStudyItemDescendantsOnly(scopePageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: LEARNING_KEYS.all });
+    },
+  });
+}
+
 export function useDeactivateLearningPage() {
   const queryClient = useQueryClient();
 

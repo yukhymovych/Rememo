@@ -42,6 +42,10 @@ learningRouter.post(
   learningController.activateStudyItemScoped
 );
 learningRouter.post(
+  '/study-items/activate-descendants',
+  learningController.activateStudyItemDescendantsOnly
+);
+learningRouter.post(
   '/study-items/deactivate',
   learningController.deactivateStudyItem
 );

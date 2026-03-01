@@ -11,6 +11,7 @@ import {
   useStudyItemStatus,
   useActivateLearningPage,
   useActivateLearningPageScoped,
+  useActivateLearningPageDescendantsOnly,
   useDeactivateLearningPage,
   useStartScopedLearningSession,
 } from '@/features/learning/model';
@@ -32,6 +33,7 @@ export function NotePageActionsMenu({
   const { data: studyStatus } = useStudyItemStatus(noteId);
   const activateLearning = useActivateLearningPage();
   const activateLearningScoped = useActivateLearningPageScoped();
+  const activateLearningDescendantsOnly = useActivateLearningPageDescendantsOnly();
   const deactivateLearning = useDeactivateLearningPage();
   const startScopedSession = useStartScopedLearningSession();
 
@@ -59,6 +61,10 @@ export function NotePageActionsMenu({
 
   const handleSetAsLearningScoped = () => {
     activateLearningScoped.mutate(noteId);
+  };
+
+  const handleSetAsLearningDescendantsOnly = () => {
+    activateLearningDescendantsOnly.mutate(noteId);
   };
 
   const handleRemoveFromLearning = () => {
@@ -90,6 +96,9 @@ export function NotePageActionsMenu({
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSetAsLearningScoped}>
                 Add this page and descendants
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSetAsLearningDescendantsOnly}>
+                Add only all descendants
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>

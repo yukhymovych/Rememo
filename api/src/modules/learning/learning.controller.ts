@@ -9,6 +9,7 @@ import {
   descendantsWithLearningQuerySchema,
   activateBodySchema,
   activateScopedBodySchema,
+  activateDescendantsBodySchema,
   deactivateBodySchema,
   sessionItemIdSchema,
 } from './learning.schemas.js';
@@ -195,6 +196,28 @@ export async function activateStudyItemScoped(
     const userId = req.user!.id;
     const input = activateScopedBodySchema.parse(req.body);
     const result = await learningService.activateStudyItemScoped(
+      userId,
+      input.scopePageId
+    );
+    if (!result) {
+      res.status(404).json({ error: 'Page not found' });
+      return;
+    }
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function activateStudyItemDescendantsOnly(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const input = activateDescendantsBodySchema.parse(req.body);
+    const result = await learningService.activateStudyItemDescendantsOnly(
       userId,
       input.scopePageId
     );

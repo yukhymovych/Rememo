@@ -135,6 +135,12 @@ export async function activateStudyItemScoped(
   return http.post('/learning/study-items/activate-scoped', { scopePageId });
 }
 
+export async function activateStudyItemDescendantsOnly(
+  scopePageId: string
+): Promise<{ activated: number }> {
+  return http.post('/learning/study-items/activate-descendants', { scopePageId });
+}
+
 export async function deactivateStudyItem(pageId: string): Promise<{ ok: boolean }> {
   return http.post('/learning/study-items/deactivate', { pageId });
 }

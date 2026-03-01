@@ -373,6 +373,19 @@ export async function activateStudyItemScoped(
   return { activated: noteIds.length };
 }
 
+export async function activateStudyItemDescendantsOnly(
+  userId: string,
+  scopePageId: string
+) {
+  const note = await notesSQL.getNoteById(scopePageId, userId);
+  if (!note) return null;
+  const descendantIds = await notesSQL.getDescendantIds(scopePageId, userId);
+  for (const id of descendantIds) {
+    await learningSQL.createStudyItem(userId, id);
+  }
+  return { activated: descendantIds.length };
+}
+
 export async function deactivateStudyItem(userId: string, pageId: string) {
   const ok = await learningSQL.deactivateStudyItem(userId, pageId);
   return ok ? { ok: true } : null;

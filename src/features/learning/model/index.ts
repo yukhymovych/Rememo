@@ -20,5 +20,6 @@ export { useDescendantsWithLearningCount } from './useDescendantsWithLearningCou
 export {
   useActivateLearningPage,
   useActivateLearningPageScoped,
+  useActivateLearningPageDescendantsOnly,
   useDeactivateLearningPage,
 } from './useToggleLearningPage';

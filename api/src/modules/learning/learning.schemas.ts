@@ -37,6 +37,10 @@ export const activateScopedBodySchema = z.object({
   scopePageId: z.string().uuid(),
 });
 
+export const activateDescendantsBodySchema = z.object({
+  scopePageId: z.string().uuid(),
+});
+
 export const deactivateBodySchema = z.object({
   pageId: z.string().uuid(),
 });

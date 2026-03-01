@@ -8,6 +8,8 @@ import { useStartLearningSession } from '../model/useStartLearningSession';
 import { learningRoutes } from '../lib/routes';
 import './LearningSidebarCard.css';
 
+const GLOBAL_DAILY_CAP = 15;
+
 export function LearningSidebarCard() {
   const navigate = useNavigate();
   const { data: session, isLoading } = useTodayLearningSession();
@@ -23,6 +25,8 @@ export function LearningSidebarCard() {
   const hasSession = !!session && totalCount > 0;
   const canContinue = hasSession && pendingCount > 0;
   const hasItemsReady = !hasSession && dueCount > 0;
+  const sessionCapacity = Math.min(dueCount, GLOBAL_DAILY_CAP);
+  const queuedCount = Math.max(dueCount - sessionCapacity, 0);
   const activeScopedSessions = scopedSessions.filter((s) => s.total > 0);
 
   const handleStartOrContinue = () => {
@@ -61,8 +65,19 @@ export function LearningSidebarCard() {
           </>
         ) : hasItemsReady ? (
           <>
-            <span className="learning-sidebar-card__remaining">{dueCount}</span>
-            <span className="learning-sidebar-card__label"> items ready</span>
+            <div>
+              <span className="learning-sidebar-card__remaining">{dueCount}</span>
+              <span className="learning-sidebar-card__label"> ready</span>
+            </div>
+            <div className="learning-sidebar-card__hint">
+              Today&apos;s session: up to {sessionCapacity} item
+              {sessionCapacity === 1 ? '' : 's'}
+            </div>
+            {queuedCount > 0 && (
+              <div className="learning-sidebar-card__hint">
+                {queuedCount} remain in queue
+              </div>
+            )}
           </>
         ) : (
           <span className="learning-sidebar-card__label">No items due</span>
@@ -78,7 +93,9 @@ export function LearningSidebarCard() {
           ? 'Starting...'
           : canContinue
             ? 'Continue'
-            : 'Start Learning'}
+            : hasItemsReady
+              ? "Start today's session"
+              : 'Start Learning'}
       </Button>
       {activeScopedSessions.length > 0 && (
         <div className="learning-sidebar-card__scoped">
