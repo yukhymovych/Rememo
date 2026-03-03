@@ -52,6 +52,15 @@ export interface StudyItemReviewLog {
   due_before: Date | null;
   due_after: Date | null;
   review_day_key: string | null;
+  is_undone: boolean;
+  undone_at: Date | null;
+}
+
+export interface ReviewUndoTokenSnapshot {
+  dueAt: Date;
+  lastReviewedAt: Date | null;
+  stabilityDays: number;
+  difficulty: number;
 }
 
 export async function getUserTimezone(userId: string): Promise<string> {
@@ -652,8 +661,8 @@ interface InsertReviewLogV2Params {
 export async function insertReviewLogV2(
   client: PoolClient,
   params: InsertReviewLogV2Params
-): Promise<void> {
-  await client.query(
+): Promise<string> {
+  const result = await client.query(
     `INSERT INTO review_logs (
       user_id,
       note_id,
@@ -669,7 +678,8 @@ export async function insertReviewLogV2(
       due_after,
       review_day_key
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     RETURNING id`,
     [
       params.userId,
       params.noteId,
@@ -685,6 +695,178 @@ export async function insertReviewLogV2(
       params.dueAfter,
       params.reviewDayKey,
     ]
+  );
+  return result.rows[0].id as string;
+}
+
+interface CreateReviewUndoTokenParams {
+  reviewLogId: string;
+  userId: string;
+  noteId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  snapshot: ReviewUndoTokenSnapshot;
+  sessionItemIds: string[];
+}
+
+export async function markActiveUndoTokensUsedByUser(
+  client: PoolClient,
+  userId: string
+): Promise<void> {
+  await client.query(
+    `UPDATE review_undo_tokens
+     SET is_used = true,
+         used_at = NOW()
+     WHERE user_id = $1 AND is_used = false`,
+    [userId]
+  );
+}
+
+export async function createReviewUndoToken(
+  client: PoolClient,
+  params: CreateReviewUndoTokenParams
+): Promise<void> {
+  await client.query(
+    `INSERT INTO review_undo_tokens (
+      review_log_id,
+      user_id,
+      note_id,
+      token_hash,
+      expires_at,
+      prev_due_at,
+      prev_last_reviewed_at,
+      prev_stability_days,
+      prev_difficulty,
+      session_item_ids
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[])`,
+    [
+      params.reviewLogId,
+      params.userId,
+      params.noteId,
+      params.tokenHash,
+      params.expiresAt,
+      params.snapshot.dueAt,
+      params.snapshot.lastReviewedAt,
+      params.snapshot.stabilityDays,
+      params.snapshot.difficulty,
+      params.sessionItemIds,
+    ]
+  );
+}
+
+export interface ReviewUndoTokenRecord {
+  review_log_id: string;
+  user_id: string;
+  note_id: string;
+  token_hash: string;
+  expires_at: Date;
+  is_used: boolean;
+  used_at: Date | null;
+  prev_due_at: Date;
+  prev_last_reviewed_at: Date | null;
+  prev_stability_days: number;
+  prev_difficulty: number;
+  session_item_ids: string[];
+  log_is_undone: boolean;
+}
+
+export async function getReviewUndoTokenForUpdate(
+  client: PoolClient,
+  reviewLogId: string,
+  userId: string
+): Promise<ReviewUndoTokenRecord | null> {
+  const result = await client.query(
+    `SELECT
+        rut.review_log_id,
+        rut.user_id,
+        rut.note_id,
+        rut.token_hash,
+        rut.expires_at,
+        rut.is_used,
+        rut.used_at,
+        rut.prev_due_at,
+        rut.prev_last_reviewed_at,
+        rut.prev_stability_days,
+        rut.prev_difficulty,
+        rut.session_item_ids,
+        rl.is_undone AS log_is_undone
+     FROM review_undo_tokens rut
+     JOIN review_logs rl ON rl.id = rut.review_log_id
+     WHERE rut.review_log_id = $1 AND rut.user_id = $2
+     FOR UPDATE`,
+    [reviewLogId, userId]
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function markReviewUndoTokenUsed(
+  client: PoolClient,
+  reviewLogId: string
+): Promise<void> {
+  await client.query(
+    `UPDATE review_undo_tokens
+     SET is_used = true,
+         used_at = NOW()
+     WHERE review_log_id = $1`,
+    [reviewLogId]
+  );
+}
+
+export async function markReviewLogUndone(
+  client: PoolClient,
+  reviewLogId: string,
+  userId: string
+): Promise<void> {
+  await client.query(
+    `UPDATE review_logs
+     SET is_undone = true,
+         undone_at = NOW()
+     WHERE id = $1 AND user_id = $2`,
+    [reviewLogId, userId]
+  );
+}
+
+export async function restoreStudyItemScheduleFromSnapshot(
+  client: PoolClient,
+  userId: string,
+  noteId: string,
+  snapshot: ReviewUndoTokenSnapshot
+): Promise<void> {
+  await client.query(
+    `UPDATE study_items
+     SET due_at = $1,
+         last_reviewed_at = $2,
+         stability_days = $3,
+         difficulty = $4
+     WHERE user_id = $5 AND note_id = $6`,
+    [
+      snapshot.dueAt,
+      snapshot.lastReviewedAt,
+      snapshot.stabilityDays,
+      snapshot.difficulty,
+      userId,
+      noteId,
+    ]
+  );
+}
+
+export async function restoreSessionItemsFromUndo(
+  client: PoolClient,
+  userId: string,
+  sessionItemIds: string[]
+): Promise<void> {
+  if (sessionItemIds.length === 0) return;
+  await client.query(
+    `UPDATE learning_session_items lsi
+     SET state = 'pending',
+         grade = NULL,
+         reviewed_at = NULL
+     FROM learning_sessions ls
+     WHERE lsi.session_id = ls.id
+       AND ls.user_id = $1
+       AND lsi.id = ANY($2::uuid[])`,
+    [userId, sessionItemIds]
   );
 }
 
@@ -808,9 +990,11 @@ export async function getReviewLogsByUserAndNote(
         difficulty_after,
         due_before,
         due_after,
-        review_day_key
+        review_day_key,
+        is_undone,
+        undone_at
      FROM review_logs
-     WHERE user_id = $1 AND note_id = $2
+     WHERE user_id = $1 AND note_id = $2 AND is_undone = false
      ORDER BY reviewed_at DESC`,
     [userId, noteId]
   );

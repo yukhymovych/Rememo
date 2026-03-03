@@ -1,7 +1,11 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useRef, type MutableRefObject } from 'react';
 import * as learningApi from '../api/learningApi';
-import type { Grade } from '../domain/learning.types';
+import type { Grade, GradeSubmitResponse } from '../domain/learning.types';
 import { LEARNING_KEYS, getBrowserTimezone } from './learning.queries';
+import { showToast } from '../../../shared/lib/toast';
+
+const UNDO_DURATION_MS = 10_000;
 
 function getDaysDiff(
   reviewedAt: string | null,
@@ -45,8 +49,54 @@ async function logReviewHistoryForPage(pageId?: string | null): Promise<void> {
   }
 }
 
+function showUndoGradeToast(params: {
+  response: GradeSubmitResponse;
+  queryClient: QueryClient;
+  undoInFlightRef: MutableRefObject<boolean>;
+  pageId?: string | null;
+}): void {
+  const { response, queryClient, undoInFlightRef, pageId } = params;
+  if (
+    response.alreadyGraded ||
+    !response.reviewLogId ||
+    !response.undoToken ||
+    !response.undoExpiresAt
+  ) {
+    return;
+  }
+
+  const reviewLogId = response.reviewLogId;
+  const undoToken = response.undoToken;
+  showToast({
+    message: 'Grade saved · Undo (10s)',
+    durationMs: UNDO_DURATION_MS,
+    action: {
+      label: 'Undo',
+      showCountdown: true,
+      onClick: async () => {
+        if (undoInFlightRef.current) return;
+        undoInFlightRef.current = true;
+        try {
+          await learningApi.undoReviewGrade({
+            reviewLogId,
+            undoToken,
+          });
+          queryClient.invalidateQueries({ queryKey: LEARNING_KEYS.all });
+          showToast('Grade undone');
+          await logReviewHistoryForPage(pageId);
+        } catch {
+          showToast('Undo failed. Grade was already finalized.');
+        } finally {
+          undoInFlightRef.current = false;
+        }
+      },
+    },
+  });
+}
+
 export function useSubmitLearningGrade() {
   const queryClient = useQueryClient();
+  const undoInFlightRef = useRef(false);
 
   return useMutation({
     mutationFn: ({
@@ -58,9 +108,16 @@ export function useSubmitLearningGrade() {
       noteId?: string | null;
     }) =>
       learningApi.submitGrade(sessionItemId, grade),
-    onSuccess: async (_, variables) => {
+    onSuccess: async (response, variables) => {
       queryClient.invalidateQueries({ queryKey: LEARNING_KEYS.all });
       await logReviewHistoryForPage(variables.noteId);
+
+      showUndoGradeToast({
+        response,
+        queryClient,
+        undoInFlightRef,
+        pageId: variables.noteId,
+      });
     },
   });
 }
@@ -68,13 +125,21 @@ export function useSubmitLearningGrade() {
 export function useSubmitGradeByPage() {
   const queryClient = useQueryClient();
   const timezone = getBrowserTimezone();
+  const undoInFlightRef = useRef(false);
 
   return useMutation({
     mutationFn: ({ pageId, grade }: { pageId: string; grade: Grade }) =>
       learningApi.submitGradeByPage(pageId, grade, timezone),
-    onSuccess: async (_, variables) => {
+    onSuccess: async (response, variables) => {
       queryClient.invalidateQueries({ queryKey: LEARNING_KEYS.all });
       await logReviewHistoryForPage(variables.pageId);
+
+      showUndoGradeToast({
+        response,
+        queryClient,
+        undoInFlightRef,
+        pageId: variables.pageId,
+      });
     },
   });
 }

@@ -1,11 +1,27 @@
 /**
  * Minimal toast: call showToast(msg) from anywhere. Toaster component must be mounted.
  */
-type Listener = (message: string) => void;
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+  showCountdown?: boolean;
+}
+
+export interface ToastPayload {
+  message: string;
+  durationMs?: number;
+  action?: ToastAction;
+}
+
+type Listener = (toast: ToastPayload) => void;
 const listeners: Listener[] = [];
 
-export function showToast(message: string): void {
-  listeners.forEach((l) => l(message));
+export function showToast(messageOrToast: string | ToastPayload): void {
+  const toast: ToastPayload =
+    typeof messageOrToast === 'string'
+      ? { message: messageOrToast }
+      : messageOrToast;
+  listeners.forEach((listener) => listener(toast));
 }
 
 export function addToastListener(listener: Listener): () => void {

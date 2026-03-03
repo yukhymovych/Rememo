@@ -22,6 +22,11 @@ export const gradeByPageBodySchema = z.object({
   grade: gradeSchema,
 });
 
+export const undoReviewBodySchema = z.object({
+  reviewLogId: z.string().uuid(),
+  undoToken: z.string().min(1).max(512),
+});
+
 export const studyItemStatusQuerySchema = z.object({
   pageId: z.string().uuid(),
 });

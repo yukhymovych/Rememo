@@ -8,6 +8,8 @@ import type {
   StartScopedSessionResponse,
   DueStudyItem,
   ScopedSessionMode,
+  GradeSubmitResponse,
+  UndoReviewRequest,
 } from '../domain/learning.types';
 
 export async function startSession(timezone?: string): Promise<TodaySessionResponse | null> {
@@ -111,7 +113,7 @@ export async function submitGradeByPage(
   pageId: string,
   grade: Grade,
   timezone?: string
-): Promise<{ success: boolean; alreadyGraded?: boolean }> {
+): Promise<GradeSubmitResponse> {
   const tz = timezone ?? 'UTC';
   return http.post(`/learning/session/grade-by-page?timezone=${encodeURIComponent(tz)}`, {
     pageId,
@@ -122,10 +124,16 @@ export async function submitGradeByPage(
 export async function submitGrade(
   sessionItemId: string,
   grade: Grade
-): Promise<{ success: boolean; alreadyGraded?: boolean }> {
+): Promise<GradeSubmitResponse> {
   return http.post(`/learning/session/item/${sessionItemId}/grade`, {
     grade,
   });
+}
+
+export async function undoReviewGrade(
+  input: UndoReviewRequest
+): Promise<{ success: boolean }> {
+  return http.post('/learning/reviews/undo', input);
 }
 
 export async function activateStudyItem(pageId: string): Promise<unknown> {

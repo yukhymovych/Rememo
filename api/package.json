@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "test": "tsx --test src/modules/learning/learning.undo.test.ts",
     "start": "node dist/server.js",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",

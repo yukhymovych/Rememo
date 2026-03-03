@@ -12,6 +12,7 @@ import {
   activateDescendantsBodySchema,
   deactivateBodySchema,
   sessionItemIdSchema,
+  undoReviewBodySchema,
 } from './learning.schemas.js';
 
 export async function startSession(
@@ -180,6 +181,29 @@ export async function gradeSessionItem(
     );
     if (!result.success) {
       res.status(404).json({ error: result.error });
+      return;
+    }
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function undoReviewGrade(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const input = undoReviewBodySchema.parse(req.body);
+    const result = await learningService.undoReviewGrade(
+      userId,
+      input.reviewLogId,
+      input.undoToken
+    );
+    if (!result.success) {
+      res.status(result.status).json({ error: result.error });
       return;
     }
     res.json(result);

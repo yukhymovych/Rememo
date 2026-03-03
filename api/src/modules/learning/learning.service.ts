@@ -1,4 +1,5 @@
 import { pool } from '../../db/pool.js';
+import { createHash, randomBytes } from 'crypto';
 import * as notesSQL from '../notes/notes.sql.js';
 import * as learningSQL from './learning.sql.js';
 import type { Grade } from './learning.schemas.js';
@@ -8,6 +9,17 @@ import {
   computeDueOnlyScopedNoteIds,
   computeEligibleScopedNoteIds,
 } from './learning.helpers.js';
+import { executeUndoReview } from './learning.undo.js';
+
+const UNDO_WINDOW_MS = 10_000;
+
+function createUndoToken(): string {
+  return randomBytes(24).toString('hex');
+}
+
+function hashUndoToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 export async function startSession(userId: string, timezone: string) {
   const dayKey = getDayKey(timezone);
@@ -223,7 +235,7 @@ export async function gradeSessionItem(
       schedule.nextStabilityDays,
       schedule.nextDifficulty
     );
-    await learningSQL.insertReviewLogV2(client, {
+    const reviewLogId = await learningSQL.insertReviewLogV2(client, {
       userId,
       noteId: item.note_id,
       grade,
@@ -255,10 +267,61 @@ export async function gradeSessionItem(
       for (const otherId of otherItemIds) {
         await learningSQL.updateSessionItemGrade(client, otherId, grade, now);
       }
+
+      // Invariant: undo is "last action only", so each new grade invalidates older undo actions.
+      await learningSQL.markActiveUndoTokensUsedByUser(client, userId);
+
+      const undoToken = createUndoToken();
+      const undoExpiresAt = new Date(now.getTime() + UNDO_WINDOW_MS);
+      await learningSQL.createReviewUndoToken(client, {
+        reviewLogId,
+        userId,
+        noteId: item.note_id,
+        tokenHash: hashUndoToken(undoToken),
+        expiresAt: undoExpiresAt,
+        snapshot: {
+          dueAt: studyItem.due_at,
+          lastReviewedAt: studyItem.last_reviewed_at,
+          stabilityDays: studyItem.stability_days,
+          difficulty: studyItem.difficulty,
+        },
+        sessionItemIds: [sessionItemId, ...otherItemIds],
+      });
+
+      await client.query('COMMIT');
+      return {
+        success: true,
+        reviewLogId,
+        undoToken,
+        undoExpiresAt: undoExpiresAt.toISOString(),
+      };
     }
 
+    await learningSQL.markActiveUndoTokensUsedByUser(client, userId);
+    const undoToken = createUndoToken();
+    const undoExpiresAt = new Date(now.getTime() + UNDO_WINDOW_MS);
+    await learningSQL.createReviewUndoToken(client, {
+      reviewLogId,
+      userId,
+      noteId: item.note_id,
+      tokenHash: hashUndoToken(undoToken),
+      expiresAt: undoExpiresAt,
+      snapshot: {
+        dueAt: studyItem.due_at,
+        lastReviewedAt: studyItem.last_reviewed_at,
+        stabilityDays: studyItem.stability_days,
+        difficulty: studyItem.difficulty,
+      },
+      sessionItemIds: [sessionItemId],
+    });
+
     await client.query('COMMIT');
-    return { success: true };
+    return {
+      success: true,
+      reviewLogId,
+      undoToken,
+      undoExpiresAt: undoExpiresAt.toISOString(),
+    };
   } catch (e) {
     await client.query('ROLLBACK');
     throw e;
@@ -341,7 +404,7 @@ export async function gradeByPage(
       schedule.nextStabilityDays,
       schedule.nextDifficulty
     );
-    await learningSQL.insertReviewLogV2(client, {
+    const reviewLogId = await learningSQL.insertReviewLogV2(client, {
       userId,
       noteId: pageId,
       grade,
@@ -357,11 +420,93 @@ export async function gradeByPage(
       reviewDayKey: schedule.todayKey,
     });
 
+    // Snapshot is required because the same study_item row is mutated in-place.
+    // Undo must restore exact pre-grade schedule fields, not re-derive approximately.
+    await learningSQL.markActiveUndoTokensUsedByUser(client, userId);
+    const undoToken = createUndoToken();
+    const undoExpiresAt = new Date(now.getTime() + UNDO_WINDOW_MS);
+    await learningSQL.createReviewUndoToken(client, {
+      reviewLogId,
+      userId,
+      noteId: pageId,
+      tokenHash: hashUndoToken(undoToken),
+      expiresAt: undoExpiresAt,
+      snapshot: {
+        dueAt: lockedStudyItem.due_at,
+        lastReviewedAt: lockedStudyItem.last_reviewed_at,
+        stabilityDays: lockedStudyItem.stability_days,
+        difficulty: lockedStudyItem.difficulty,
+      },
+      sessionItemIds: [],
+    });
+
     await client.query('COMMIT');
-    return { success: true };
+    return {
+      success: true,
+      reviewLogId,
+      undoToken,
+      undoExpiresAt: undoExpiresAt.toISOString(),
+    };
   } catch (e) {
     await client.query('ROLLBACK');
     throw e;
+  } finally {
+    client.release();
+  }
+}
+
+export async function undoReviewGrade(
+  userId: string,
+  reviewLogId: string,
+  undoToken: string
+) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await executeUndoReview({
+      userId,
+      reviewLogId,
+      undoToken,
+      repo: {
+        getUndoTokenForUpdate: (targetReviewLogId, targetUserId) =>
+          learningSQL.getReviewUndoTokenForUpdate(
+            client,
+            targetReviewLogId,
+            targetUserId
+          ),
+        restoreSchedule: (targetUserId, noteId, snapshot) =>
+          learningSQL.restoreStudyItemScheduleFromSnapshot(
+            client,
+            targetUserId,
+            noteId,
+            snapshot
+          ),
+        restoreSessionItems: (targetUserId, sessionItemIds) =>
+          learningSQL.restoreSessionItemsFromUndo(
+            client,
+            targetUserId,
+            sessionItemIds
+          ),
+        markReviewLogUndone: (targetReviewLogId, targetUserId) =>
+          learningSQL.markReviewLogUndone(
+            client,
+            targetReviewLogId,
+            targetUserId
+          ),
+        markUndoTokenUsed: (targetReviewLogId) =>
+          learningSQL.markReviewUndoTokenUsed(client, targetReviewLogId),
+      },
+    });
+    if (!result.success) {
+      await client.query('ROLLBACK');
+      return result;
+    }
+
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
   } finally {
     client.release();
   }

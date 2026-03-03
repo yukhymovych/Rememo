@@ -82,3 +82,16 @@ export interface DueStudyItem {
   noteId: string;
   dueAt: string;
 }
+
+export interface GradeSubmitResponse {
+  success: boolean;
+  alreadyGraded?: boolean;
+  reviewLogId?: string;
+  undoToken?: string;
+  undoExpiresAt?: string;
+}
+
+export interface UndoReviewRequest {
+  reviewLogId: string;
+  undoToken: string;
+}
