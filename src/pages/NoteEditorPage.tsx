@@ -5,6 +5,8 @@ import { NoteEditorToolbar } from '../features/notes/ui/NoteEditorToolbar';
 import { NoteTitleInput } from '../features/notes/ui/NoteTitleInput';
 import { NoteEditorBody } from '../features/notes/ui/NoteEditorBody';
 import { NoteEditorLearningGradeBar } from '../features/learning/ui/NoteEditorLearningGradeBar';
+import { useStudyItemStatus } from '../features/learning/model/useStudyItemStatus';
+import { StudyQuestionsAnswersBlock } from '../features/study-questions/ui';
 import './NoteEditorPage.css';
 
 export function NoteEditorPage() {
@@ -27,6 +29,7 @@ export function NoteEditorPage() {
     noteTitlesMap,
     getSlashMenuItems,
   } = useNoteEditor(id);
+  const { data: studyItemStatus } = useStudyItemStatus(id ?? null);
 
   if (isLoading || !id) {
     return <div className="note-editor-page note-editor-page--loading">Loading note...</div>;
@@ -60,6 +63,9 @@ export function NoteEditorPage() {
         noteTitlesMap={noteTitlesMap}
         getSlashMenuItems={getSlashMenuItems}
       />
+      {id && studyItemStatus?.status === 'active' ? (
+        <StudyQuestionsAnswersBlock pageId={id} />
+      ) : null}
       <NoteEditorLearningGradeBar noteId={id} />
     </div>
   );

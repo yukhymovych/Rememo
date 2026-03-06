@@ -1,12 +1,25 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middlewares/requireAuth.js';
 import * as notesController from './notes.controller.js';
+import * as studyQuestionsController from '../studyQuestionsAnswers/studyQuestionsAnswers.controller.js';
 
 export const notesRouter = Router();
 
 notesRouter.use(requireAuth);
 
 notesRouter.get('/', notesController.getNotes);
+notesRouter.get(
+  '/:pageId/study-questions',
+  studyQuestionsController.getPageStudyQuestions
+);
+notesRouter.post(
+  '/:pageId/study-questions',
+  studyQuestionsController.createManualStudyQuestion
+);
+notesRouter.post(
+  '/:pageId/study-questions/generate',
+  studyQuestionsController.generateStudyQuestions
+);
 notesRouter.get('/:id/embeds', notesController.getNoteEmbeds);
 notesRouter.get('/:id', notesController.getNote);
 notesRouter.post('/', notesController.createNote);

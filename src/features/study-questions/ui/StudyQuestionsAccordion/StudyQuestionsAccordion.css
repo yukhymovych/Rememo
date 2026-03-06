@@ -1,0 +1,35 @@
+.study-qa-accordion {
+  margin-top: 14px;
+  border-top: 1px solid #262b33;
+  padding-top: 12px;
+}
+
+.study-qa-accordion__title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: #e5e7eb;
+}
+
+.study-qa-accordion__list {
+  display: grid;
+  gap: 8px;
+}
+
+.study-qa-accordion__item {
+  border: 1px solid #2b2f36;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #0f1218;
+}
+
+.study-qa-accordion__question {
+  cursor: pointer;
+  color: #f3f4f6;
+  font-weight: 600;
+}
+
+.study-qa-accordion__answer {
+  margin: 8px 0 0;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+}

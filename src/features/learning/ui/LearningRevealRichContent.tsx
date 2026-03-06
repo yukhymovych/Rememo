@@ -7,6 +7,8 @@ import { NoteTitlesContext } from '@/features/notes/blocks/EmbeddedPageBlock';
 import { createNoteEditorSchema } from '@/features/notes/lib/noteEditorSchema';
 import { ensureBlocksArray } from '@/features/notes/lib/blocks';
 import { Button } from '@/shared/ui';
+import { StudyQuestionsAccordion } from '@/features/study-questions/ui';
+import type { StudyQuestionAnswer } from '@/features/study-questions/domain/studyQuestions.types';
 
 export interface LearningRevealRichContentProps {
   title: string;
@@ -15,6 +17,7 @@ export interface LearningRevealRichContentProps {
   revealed: boolean;
   onReveal: () => void;
   contentKey?: string;
+  studyQuestions?: StudyQuestionAnswer[];
 }
 
 export function LearningRevealRichContent({
@@ -24,6 +27,7 @@ export function LearningRevealRichContent({
   revealed,
   onReveal,
   contentKey = '',
+  studyQuestions = [],
 }: LearningRevealRichContentProps) {
   const schema = useMemo(() => createNoteEditorSchema(), []);
   const initialContent = useMemo(
@@ -41,19 +45,25 @@ export function LearningRevealRichContent({
     <div className="learning-reveal">
       <h2 className="learning-reveal__title">{title}</h2>
       {!revealed ? (
-        <Button
-          variant="secondary"
-          onClick={onReveal}
-          className="learning-reveal__show-btn"
-        >
-          Show Answer
-        </Button>
+        <>
+          <Button
+            variant="secondary"
+            onClick={onReveal}
+            className="learning-reveal__show-btn"
+          >
+            Show Answer
+          </Button>
+          <StudyQuestionsAccordion pairs={studyQuestions} />
+        </>
       ) : (
-        <NoteTitlesContext.Provider value={noteTitlesMap}>
-          <div className="learning-reveal__rich-content">
-            <BlockNoteView editor={editor} editable={false} slashMenu={false} />
-          </div>
-        </NoteTitlesContext.Provider>
+        <>
+          <NoteTitlesContext.Provider value={noteTitlesMap}>
+            <div className="learning-reveal__rich-content">
+              <BlockNoteView editor={editor} editable={false} slashMenu={false} />
+            </div>
+          </NoteTitlesContext.Provider>
+          <StudyQuestionsAccordion pairs={studyQuestions} />
+        </>
       )}
     </div>
   );

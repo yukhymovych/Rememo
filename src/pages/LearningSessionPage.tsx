@@ -11,6 +11,7 @@ import { LearningGradeBar } from '../features/learning/ui/LearningGradeBar';
 import { LearningSummary } from '../features/learning/ui/LearningSummary';
 import { LearningAnimatedSwitch } from '../features/learning/ui/LearningAnimatedSwitch';
 import type { Grade } from '../features/learning/domain/learning.types';
+import { useStudyQuestions } from '../features/study-questions/model/useStudyQuestions';
 import '../features/learning/ui/LearningPage.css';
 
 export function LearningSessionPage() {
@@ -25,6 +26,10 @@ export function LearningSessionPage() {
   const pendingItems = session?.items.filter((i) => i.state === 'pending') ?? [];
   const currentItem = pendingItems[0];
   const noteQuery = useNoteQuery(
+    currentItem?.note_id ?? undefined,
+    !!currentItem?.note_id
+  );
+  const studyQuestionsQuery = useStudyQuestions(
     currentItem?.note_id ?? undefined,
     !!currentItem?.note_id
   );
@@ -102,6 +107,7 @@ export function LearningSessionPage() {
             richContent={richContent}
             noteTitlesMap={noteTitlesMap}
             contentKey={currentItem.note_id ?? currentItem.id}
+            studyQuestions={studyQuestionsQuery.data ?? []}
           />
         </LearningAnimatedSwitch>
         <div className="learning-page__grade-bar">

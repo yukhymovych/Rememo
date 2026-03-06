@@ -1,0 +1,75 @@
+.study-qa-block {
+  margin-top: 16px;
+  border: 1px solid #2b2f36;
+  border-radius: 10px;
+  padding: 12px;
+  background: #13161b;
+}
+
+.study-qa-block__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.study-qa-block__title {
+  margin: 0;
+  font-size: 18px;
+  color: #f3f4f6;
+}
+
+.study-qa-block__hint {
+  margin: 0 0 10px;
+  color: #9ca3af;
+}
+
+.study-qa-block__create {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.study-qa-block__input,
+.study-qa-block__textarea {
+  border: 1px solid #3a3f47;
+  border-radius: 8px;
+  background: #0f1216;
+  color: #f3f4f6;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.study-qa-block__textarea {
+  resize: vertical;
+}
+
+.study-qa-block__list {
+  display: grid;
+  gap: 10px;
+}
+
+.study-qa-block__item {
+  border: 1px solid #2b2f36;
+  border-radius: 8px;
+  padding: 10px;
+  background: #101319;
+}
+
+.study-qa-block__question {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.study-qa-block__answer {
+  margin: 0 0 10px;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+}
+
+.study-qa-block__actions {
+  display: flex;
+  gap: 8px;
+}
