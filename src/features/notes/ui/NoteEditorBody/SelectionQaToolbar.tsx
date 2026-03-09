@@ -38,14 +38,14 @@ export function SelectionQaToolbar({
     <SelectionQaToolbarButton
       key="generateOneQuestionFromSelection"
       label="Q1"
-      tooltip="Generate 1 question from selected text"
+      tooltip="Create 1 Q/A from selected text with AI"
       onClick={() => runForSelection(onGenerateOneQuestionFromSelection)}
       isDisabled={isBusy}
     />,
     <SelectionQaToolbarButton
       key="generateUpToFiveQuestionsFromSelection"
       label="Q5"
-      tooltip="Generate up to 5 questions from selected text"
+      tooltip="Create up to 5 Q/A from selected text with AI"
       onClick={() => runForSelection(onGenerateUpToFiveQuestionsFromSelection)}
       isDisabled={isBusy}
     />,

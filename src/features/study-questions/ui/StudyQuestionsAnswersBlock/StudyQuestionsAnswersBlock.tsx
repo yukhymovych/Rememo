@@ -108,7 +108,7 @@ export function StudyQuestionsAnswersBlock({ pageId }: StudyQuestionsAnswersBloc
           onClick={generateForPage}
           disabled={isBusy}
         >
-          Generate Q/A with AI
+          Create up to 5 Q/A with AI
         </Button>
       </div>
 
