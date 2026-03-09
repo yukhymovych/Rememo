@@ -22,8 +22,12 @@ import { createNoteEditorSchema } from '../lib/noteEditorSchema';
 import { ensureBlocksArray, DEFAULT_BLOCKS } from '../lib/blocks';
 import { notesRoutes } from '../lib/routes';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
+import { useGenerateStudyQuestions } from '@/features/study-questions/model/useStudyQuestions';
+import type { GenerateStudyQuestionsMode } from '@/features/study-questions/domain/studyQuestions.types';
+import { showToast } from '@/shared/lib/toast';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+const MIN_SELECTION_TEXT_LENGTH = 30;
 
 export function useNoteEditor(id: string | undefined) {
   const navigate = useNavigate();
@@ -36,6 +40,8 @@ export function useNoteEditor(id: string | undefined) {
   const createMutation = useCreateNote();
   const setNoteFavorite = useSetNoteFavorite();
   const updateLastVisited = useUpdateNoteLastVisited();
+  const generateOneQuestionFromSelection = useGenerateStudyQuestions(id ?? '');
+  const generateUpToFiveQuestionsFromSelection = useGenerateStudyQuestions(id ?? '');
 
   const [title, setTitle] = useState('');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -179,6 +185,27 @@ export function useNoteEditor(id: string | undefined) {
     [editor, id, createMutation],
   );
 
+  const handleGenerateQuestionsFromSelection = useCallback(
+    (selectedText: string, mode: GenerateStudyQuestionsMode) => {
+      if (!id) return;
+      const text = selectedText.trim();
+      if (text.length < MIN_SELECTION_TEXT_LENGTH) return;
+      showToast('Q/A creation has started');
+
+      const run = async () => {
+        const mutation =
+          mode === 'one' ? generateOneQuestionFromSelection : generateUpToFiveQuestionsFromSelection;
+        const created = await mutation.mutateAsync({ text, mode });
+        if (created.length > 0) {
+          showToast('Q/A creation completed');
+        }
+      };
+
+      run().catch(() => {});
+    },
+    [id, generateOneQuestionFromSelection, generateUpToFiveQuestionsFromSelection],
+  );
+
   return {
     note,
     isLoading,
@@ -197,5 +224,11 @@ export function useNoteEditor(id: string | undefined) {
     isFavorite: notes?.find((n) => n.id === id)?.is_favorite ?? false,
     noteTitlesMap,
     getSlashMenuItems,
+    handleGenerateOneQuestionFromSelection: (selectedText: string) =>
+      handleGenerateQuestionsFromSelection(selectedText, 'one'),
+    handleGenerateUpToFiveQuestionsFromSelection: (selectedText: string) =>
+      handleGenerateQuestionsFromSelection(selectedText, 'up_to_five'),
+    isGeneratingOneQuestionFromSelection: generateOneQuestionFromSelection.isPending,
+    isGeneratingUpToFiveQuestionsFromSelection: generateUpToFiveQuestionsFromSelection.isPending,
   };
 }

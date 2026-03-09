@@ -10,6 +10,7 @@ import {
 } from '../../model/useStudyQuestions';
 import type { StudyQuestionAnswer } from '../../domain/studyQuestions.types';
 import type { StudyQuestionsAnswersBlockProps } from './StudyQuestionsAnswersBlock.types';
+import { showToast } from '@/shared/lib/toast';
 import './StudyQuestionsAnswersBlock.css';
 
 interface DraftState {
@@ -85,6 +86,18 @@ export function StudyQuestionsAnswersBlock({ pageId }: StudyQuestionsAnswersBloc
     await deleteMutation.mutateAsync(id);
   };
 
+  const generateForPage = async () => {
+    showToast('Q/A creation has started');
+    try {
+      const created = await generateMutation.mutateAsync({});
+      if (created.length > 0) {
+        showToast('Q/A creation completed');
+      }
+    } catch {
+      // handled by generic error boundaries/toasts in app
+    }
+  };
+
   return (
     <section className="study-qa-block">
       <div className="study-qa-block__header">
@@ -92,7 +105,7 @@ export function StudyQuestionsAnswersBlock({ pageId }: StudyQuestionsAnswersBloc
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => generateMutation.mutate()}
+          onClick={generateForPage}
           disabled={isBusy}
         >
           Generate Q/A with AI

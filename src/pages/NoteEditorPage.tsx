@@ -28,6 +28,10 @@ export function NoteEditorPage() {
     isFavorite,
     noteTitlesMap,
     getSlashMenuItems,
+    handleGenerateOneQuestionFromSelection,
+    handleGenerateUpToFiveQuestionsFromSelection,
+    isGeneratingOneQuestionFromSelection,
+    isGeneratingUpToFiveQuestionsFromSelection,
   } = useNoteEditor(id);
   const { data: studyItemStatus } = useStudyItemStatus(id ?? null);
 
@@ -62,6 +66,10 @@ export function NoteEditorPage() {
         editor={editor}
         noteTitlesMap={noteTitlesMap}
         getSlashMenuItems={getSlashMenuItems}
+        onGenerateOneQuestionFromSelection={handleGenerateOneQuestionFromSelection}
+        onGenerateUpToFiveQuestionsFromSelection={handleGenerateUpToFiveQuestionsFromSelection}
+        isGeneratingOneQuestionFromSelection={isGeneratingOneQuestionFromSelection}
+        isGeneratingUpToFiveQuestionsFromSelection={isGeneratingUpToFiveQuestionsFromSelection}
       />
       {id && studyItemStatus?.status === 'active' ? (
         <StudyQuestionsAnswersBlock pageId={id} />

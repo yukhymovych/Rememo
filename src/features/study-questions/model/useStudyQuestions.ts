@@ -3,6 +3,7 @@ import * as studyQuestionsApi from '../api/studyQuestionsApi';
 import type {
   CreateStudyQuestionBody,
   UpdateStudyQuestionBody,
+  GenerateStudyQuestionsBody,
 } from '../domain/studyQuestions.types';
 import { STUDY_QUESTIONS_KEYS } from './studyQuestions.queries';
 
@@ -55,7 +56,8 @@ export function useDeleteStudyQuestion(pageId: string) {
 export function useGenerateStudyQuestions(pageId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => studyQuestionsApi.generateStudyQuestions(pageId),
+    mutationFn: (body?: GenerateStudyQuestionsBody) =>
+      studyQuestionsApi.generateStudyQuestions(pageId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: STUDY_QUESTIONS_KEYS.byPage(pageId),

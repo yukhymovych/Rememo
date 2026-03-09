@@ -19,3 +19,10 @@ export interface UpdateStudyQuestionBody {
   question?: string;
   answer?: string;
 }
+
+export type GenerateStudyQuestionsMode = 'one' | 'up_to_five';
+
+export interface GenerateStudyQuestionsBody {
+  text?: string;
+  mode?: GenerateStudyQuestionsMode;
+}

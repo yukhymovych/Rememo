@@ -5,6 +5,7 @@ import {
   studyQuestionIdParamSchema,
   createStudyQuestionSchema,
   updateStudyQuestionSchema,
+  generateStudyQuestionsSchema,
 } from './studyQuestionsAnswers.schemas.js';
 
 export async function getPageStudyQuestions(
@@ -46,7 +47,8 @@ export async function generateStudyQuestions(
   try {
     const userId = req.user!.id;
     const pageId = pageIdParamSchema.parse(req.params.pageId);
-    const created = await studyQuestionsService.generateForPage(pageId, userId);
+    const input = generateStudyQuestionsSchema.parse(req.body ?? {});
+    const created = await studyQuestionsService.generateForPage(pageId, userId, input);
     res.json(created);
   } catch (error) {
     next(error);

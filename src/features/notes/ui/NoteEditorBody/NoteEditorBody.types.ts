@@ -5,4 +5,8 @@ export interface NoteEditorBodyProps {
   editor: any;
   noteTitlesMap: Map<string, string>;
   getSlashMenuItems: (query: string) => Promise<DefaultReactSuggestionItem[]>;
+  onGenerateOneQuestionFromSelection: (selectedText: string) => void;
+  onGenerateUpToFiveQuestionsFromSelection: (selectedText: string) => void;
+  isGeneratingOneQuestionFromSelection: boolean;
+  isGeneratingUpToFiveQuestionsFromSelection: boolean;
 }

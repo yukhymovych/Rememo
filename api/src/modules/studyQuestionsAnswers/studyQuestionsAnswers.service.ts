@@ -3,10 +3,15 @@ import * as studyQuestionsSQL from './studyQuestionsAnswers.sql.js';
 import type {
   CreateStudyQuestionInput,
   UpdateStudyQuestionInput,
+  GenerateStudyQuestionsInput,
 } from './studyQuestionsAnswers.schemas.js';
 
 const MAX_GENERATED_PAIRS = 5;
 const MIN_TEXT_LENGTH_FOR_GENERATION = 30;
+const GENERATED_PAIR_LIMIT_BY_MODE = {
+  one: 1,
+  up_to_five: MAX_GENERATED_PAIRS,
+} as const;
 
 type GeneratedPair = {
   question: string;
@@ -355,13 +360,18 @@ export async function deleteById(id: string, userId: string) {
   }
 }
 
-export async function generateForPage(pageId: string, userId: string) {
+export async function generateForPage(
+  pageId: string,
+  userId: string,
+  input?: GenerateStudyQuestionsInput
+) {
   const note = await notesSQL.getNoteById(pageId, userId);
   if (!note) {
     throw createError('Page not found', 404);
   }
 
-  const plainText = extractContentText(note.rich_content);
+  const selectedText = input?.text?.trim();
+  const plainText = selectedText?.length ? selectedText : extractContentText(note.rich_content);
   if (!plainText || plainText.length < MIN_TEXT_LENGTH_FOR_GENERATION) {
     return [];
   }
@@ -377,9 +387,11 @@ export async function generateForPage(pageId: string, userId: string) {
   }
 
   const unique = dedupeGeneratedPairs(generated, existing);
-  if (unique.length === 0) {
+  const mode = input?.mode ?? 'up_to_five';
+  const limitedUnique = unique.slice(0, GENERATED_PAIR_LIMIT_BY_MODE[mode]);
+  if (limitedUnique.length === 0) {
     return [];
   }
 
-  return studyQuestionsSQL.createGeneratedMany(pageId, userId, unique);
+  return studyQuestionsSQL.createGeneratedMany(pageId, userId, limitedUnique);
 }

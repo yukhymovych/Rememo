@@ -3,6 +3,7 @@ import type {
   StudyQuestionAnswer,
   CreateStudyQuestionBody,
   UpdateStudyQuestionBody,
+  GenerateStudyQuestionsBody,
 } from '../domain/studyQuestions.types';
 
 export async function getStudyQuestionsForPage(
@@ -38,9 +39,11 @@ export async function deleteStudyQuestion(id: string): Promise<void> {
 }
 
 export async function generateStudyQuestions(
-  pageId: string
+  pageId: string,
+  body?: GenerateStudyQuestionsBody
 ): Promise<StudyQuestionAnswer[]> {
   return http.post<StudyQuestionAnswer[]>(
-    `/notes/${encodeURIComponent(pageId)}/study-questions/generate`
+    `/notes/${encodeURIComponent(pageId)}/study-questions/generate`,
+    body ?? {}
   );
 }
