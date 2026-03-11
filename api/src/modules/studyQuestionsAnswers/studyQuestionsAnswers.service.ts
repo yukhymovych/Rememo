@@ -20,6 +20,8 @@ type GeneratedPair = {
   answerNormalized: string;
 };
 
+type PromptMode = 'general' | 'technical';
+
 interface ErrorWithStatusCode extends Error {
   statusCode?: number;
 }
@@ -116,27 +118,68 @@ function parseGeneratedPairs(content: string): Array<{ question: string; answer:
   return result;
 }
 
-async function generatePairsWithOpenAI(
-  pageText: string,
-  existingPairsContext: string
-): Promise<Array<{ question: string; answer: string }>> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw createError('OPENAI_API_KEY is not configured', 500);
-  }
+function countMatches(text: string, pattern: RegExp): number {
+  const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+  const regex = new RegExp(pattern.source, flags);
+  const matches = text.match(regex);
+  return matches ? matches.length : 0;
+}
 
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-  const prompt = [
-    'Generate up to 5 question-answer pairs based only on the provided text. First identify the main concepts from the text, then generate questions based on different concepts.',
+function detectPromptMode(text: string): PromptMode {
+  const technicalKeywordPattern =
+    /\b(api|apis|json|sql|react|typescript|javascript|node|http|https|endpoint|schema|query|mutation|database|function|functions|class|classes|interface|interfaces|boolean|string|number|null|undefined|async|await|promise|component|components|hook|hooks|state|props|effect|request|response|payload|parameter|parameters|argument|arguments|config|configuration|enum|type|types|generic|migration|table|column|index|backend|frontend)\b/gi;
+
+  const camelOrSnakePattern =
+    /\b(?:[a-z]+[A-Z][A-Za-z0-9]*|[a-z]+_[a-z0-9_]+)\b/g;
+
+  const codeLikeSyntaxPattern =
+    /=>|===|!==|`[^`]+`/g;
+
+  const codeFragmentPattern =
+    /\b(?:const|let|var|return|import|export|select|insert|update|delete|from|where)\b|<\/?[A-Za-z][^>]{0,100}>/gi;
+
+  const technicalKeywordMatches = countMatches(text, technicalKeywordPattern);
+  const camelOrSnakeMatches = countMatches(text, camelOrSnakePattern);
+  const codeLikeSyntaxMatches = countMatches(text, codeLikeSyntaxPattern);
+  const codeFragmentMatches = countMatches(text, codeFragmentPattern);
+
+  let score = 0;
+
+  if (technicalKeywordMatches >= 3) score += 2;
+  if (camelOrSnakeMatches >= 2) score += 1;
+  if (codeLikeSyntaxMatches >= 1) score += 1;
+  if (codeFragmentMatches >= 1) score += 2;
+
+  return score >= 3 ? 'technical' : 'general';
+}
+
+function buildGeneralPrompt(pageText: string, existingPairsContext: string): string {
+  return [
+    'You generate high-quality study question-answer pairs from the provided text.',
+    '',
+    'Internal process:',
+    '- Identify the most important atomic facts, concepts, distinctions, details, and takeaways in the text.',
+    '- Exclude information already covered by the existing Q/A pairs.',
+    '- Generate new Q/A pairs only for uncovered or weakly covered information.',
     '',
     'Rules:',
-    '- Each pair must cover a different concept or fact from the text.',
-    '- Avoid repeating or paraphrasing the same idea.',
-    '- Avoid generating questions that are very similar to each other.',
-    '- Only use information present in the text.',
-    '- Keep answers concise and factual.',
+    '- Use only information explicitly present in the provided text.',
+    '- Each Q/A pair must test exactly one distinct idea.',
+    '- Prefer active recall questions over recognition questions.',
+    '- Prefer specific and testable questions over broad summary questions.',
+    '- Prefer coverage across different parts of the text.',
+    '- Avoid trivial, vague, generic, repetitive, or guessable questions.',
+    '- Avoid wording that reveals the answer too easily.',
+    '- Avoid simply restating the source text as a question.',
+    '- Answers must be concise, factual, and based only on the text.',
+    '- Write questions and answers in the same primary language as the provided text.',
+    '- If the text contains technical terms or domain-specific terminology from another language, keep those terms unchanged when appropriate.',
+    '- Do not translate established technical terms if translation would make them less accurate or less natural.',
+    '- Determine the output language from the source text itself, not from the language of existing pairs.',
+    '- If the text contains only a few meaningful ideas, return fewer pairs instead of weak ones.',
+    '- Return a maximum of 5 pairs.',
     '',
-    'Return result strictly as JSON:',
+    'Return strictly valid JSON only in this format:',
     '{',
     '  "pairs": [',
     '    {',
@@ -146,11 +189,77 @@ async function generatePairsWithOpenAI(
     '  ]',
     '}',
     '',
+    'EXISTING Q/APAIRS JSON:',
     existingPairsContext,
     '',
-    'TEXT:',
+    'TEXT TO GENERATE QUESTIONS FROM:',
     pageText,
   ].join('\n');
+}
+
+function buildTechnicalPrompt(pageText: string, existingPairsContext: string): string {
+  return [
+    'You generate high-quality technical study question-answer pairs from the provided text.',
+    '',
+    'Internal process:',
+    '- Identify atomic technical knowledge in the text: definitions, rules, constraints, behaviors, parameters, edge cases, limitations, consequences, and important details.',
+    '- Exclude information already covered by the existing Q/A pairs.',
+    '- Generate new Q/A pairs only for uncovered or weakly covered technical knowledge.',
+    '',
+    'Rules:',
+    '- Use only information explicitly present in the provided text.',
+    '- Preserve technical terminology when it improves precision.',
+    '- Each Q/A pair must test exactly one technical fact or concept.',
+    '- Prefer questions about understanding, purpose, behavior, limitation, consequence, usage, or comparison.',
+    '- Prefer coverage across different parts of the text.',
+    '- Avoid trivial, generic, repetitive, or obvious-answer questions.',
+    '- Avoid broad summary questions.',
+    '- Avoid copying source phrasing when it makes the answer too easy to guess.',
+    '- Write questions and answers in the same primary language as the provided text.',
+    '- If the text contains technical terms or domain-specific terminology from another language, keep those terms unchanged when appropriate.',
+    '- Do not translate established technical terms if translation would make them less accurate or less natural.',
+    '- Determine the output language from the source text itself, not from the language of existing pairs.',
+    '- Answers must be concise, precise, and technically accurate.',
+    '- If the text is dense, prioritize the most important uncovered and testable knowledge.',
+    '- Return a maximum of 5 pairs.',
+    '',
+    'Return strictly valid JSON only in this format:',
+    '{',
+    '  "pairs": [',
+    '    {',
+    '      "question": "...",',
+    '      "answer": "..."',
+    '    }',
+    '  ]',
+    '}',
+    '',
+    'EXISTING Q/A PAIRS JSON:',
+    existingPairsContext,
+    '',
+    'TEXT TO GENERATE QUESTIONS FROM:',
+    pageText,
+  ].join('\n');
+}
+
+function buildPrompt(pageText: string, existingPairsContext: string, mode: PromptMode): string {
+  if (mode === 'technical') {
+    return buildTechnicalPrompt(pageText, existingPairsContext);
+  }
+  return buildGeneralPrompt(pageText, existingPairsContext);
+}
+
+async function generatePairsWithOpenAI(
+  pageText: string,
+  existingPairsContext: string,
+  mode: PromptMode
+): Promise<Array<{ question: string; answer: string }>> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw createError('OPENAI_API_KEY is not configured', 500);
+  }
+
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const prompt = buildPrompt(pageText, existingPairsContext, mode);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -241,16 +350,14 @@ function buildExistingPairsPrompt(
   existing: studyQuestionsSQL.StudyQuestionAnswer[]
 ): string {
   if (existing.length === 0) {
-    return 'There are currently no existing question-answer pairs for this page.';
+    return '[]';
   }
 
-  const lines = existing.slice(0, 100).map((pair, index) => {
-    return `${index + 1}. Q: ${pair.question}\n   A: ${pair.answer}`;
-  });
-  return [
-    'Existing question-answer pairs for this page (do not repeat or paraphrase these):',
-    ...lines,
-  ].join('\n');
+  const existingPairs = existing.slice(0, 100).map((pair) => ({
+    question: pair.question,
+    answer: pair.answer,
+  }));
+  return JSON.stringify(existingPairs, null, 2);
 }
 
 function dedupeGeneratedPairs(
@@ -376,11 +483,13 @@ export async function generateForPage(
     return [];
   }
 
+  const promptMode = detectPromptMode(plainText);
   const existing = await studyQuestionsSQL.listByPage(pageId, userId);
   const existingPairsContext = buildExistingPairsPrompt(existing);
   const generated = await generatePairsWithOpenAI(
     plainText,
-    existingPairsContext
+    existingPairsContext,
+    promptMode
   );
   if (generated.length === 0) {
     return [];
