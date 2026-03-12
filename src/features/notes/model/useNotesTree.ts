@@ -13,7 +13,7 @@ import {
 import * as notesApi from '../api/notesApi';
 import { DEFAULT_NOTE_TITLE } from './types';
 import { notesRoutes } from '../lib/routes';
-import { ensureBlocksArray, appendEmbeddedPageBlock } from '../lib/blocks';
+import { createChildNote } from '../lib/createChildNote';
 import { getAncestorChain } from './noteHierarchy';
 import { buildMaps } from '../ui/SidebarNotesTree/treeUtils';
 import { formatRelativeTime } from '../domain/formatDate';
@@ -163,10 +163,12 @@ export function useNotesTree() {
     () =>
       (notes ?? [])
         .filter((n) => n.is_favorite)
-        .sort(
-          (a, b) =>
-            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        )
+        .sort((a, b) => {
+          const sortA = a.sort_order ?? 0;
+          const sortB = b.sort_order ?? 0;
+          if (sortA !== sortB) return sortA - sortB;
+          return a.id.localeCompare(b.id);
+        })
         .map((n) => n.id),
     [notes]
   );
@@ -267,39 +269,27 @@ export function useNotesTree() {
         return next;
       });
 
-      const child = await createNote.mutateAsync({
-        title: DEFAULT_NOTE_TITLE,
-        parent_id: parentId,
-        rich_content: [{ type: 'paragraph', content: [] }],
+      const child = await createChildNote(parentId, {
+        createNote: (payload) =>
+          createNote.mutateAsync({
+            title: payload.title,
+            parent_id: payload.parent_id,
+            rich_content: payload.rich_content,
+          }),
+        updateNote: (noteId, payload) =>
+          updateNote.mutateAsync({ id: noteId, payload }),
+        getParentNote: async (parentNoteId) => {
+          const cached = queryClient.getQueryData<{
+            title?: string;
+            rich_content?: unknown;
+          }>(NOTE_KEY(parentNoteId));
+          return cached ?? notesApi.getNote(parentNoteId);
+        },
       });
-
-      try {
-        const cachedParent = queryClient.getQueryData<{
-          title?: string;
-          rich_content?: unknown;
-        }>(NOTE_KEY(parentId));
-        const parent = cachedParent ?? (await notesApi.getNote(parentId));
-        const parentBlocks = ensureBlocksArray(parent?.rich_content) as {
-          type?: string;
-          props?: { noteId?: string };
-          content?: unknown[];
-        }[];
-        const updatedBlocks = appendEmbeddedPageBlock(parentBlocks, child.id);
-
-        await updateNote.mutateAsync({
-          id: parentId,
-          payload: {
-            title: parent?.title?.trim() || DEFAULT_NOTE_TITLE,
-            rich_content: updatedBlocks,
-          },
-        });
-      } catch (e) {
-        console.warn('Failed to append embedded page block to parent note', e);
-      }
 
       navigate(notesRoutes.editor(child.id));
     },
-    [createNote, navigate, queryClient, updateNote]
+    [createNote, updateNote, navigate, queryClient]
   );
 
   const handleMoveNote = useCallback(

@@ -38,3 +38,51 @@ export function formatRelativeTime(iso: string): string {
   if (diffW < 4) return diffW === 1 ? '1 week ago' : `${diffW} weeks ago`;
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+/**
+ * Formats a future ISO date for "due" display: "Today", "Tomorrow", "in 2 days", "Mar 1, 2025".
+ * Pure function - no side effects, no React.
+ */
+export function formatDueDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const dueStart = new Date(d);
+  dueStart.setHours(0, 0, 0, 0);
+  const diffMs = dueStart.getTime() - now.getTime();
+  const diffD = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffD <= 0) return 'Today';
+  if (diffD === 1) return 'Tomorrow';
+  if (diffD < 7) return `in ${diffD} days`;
+  if (diffD < 14) return 'in 1 week';
+  if (diffD < 30) return `in ${Math.floor(diffD / 7)} weeks`;
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/**
+ * Formats past/today ISO dates for "ready" display: "Today" or "Mar 8, 2026".
+ * Pure function - no side effects, no React.
+ */
+export function formatTodayOrPastDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const dueStart = new Date(d);
+  dueStart.setHours(0, 0, 0, 0);
+
+  if (dueStart.getTime() === todayStart.getTime()) {
+    return 'Today';
+  }
+
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}

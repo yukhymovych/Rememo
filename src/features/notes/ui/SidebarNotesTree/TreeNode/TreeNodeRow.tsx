@@ -1,14 +1,15 @@
 import type { NoteItem } from '../treeUtils';
 import { DEFAULT_NOTE_TITLE } from '../../../model/types';
+import { NotePageActionsMenu } from '../../NotePageActionsMenu';
+import { useDescendantsWithLearningCount } from '@/features/learning/model/useDescendantsWithLearningCount';
 import {
   Button,
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui';
 import { cn } from '@/lib/utils';
 import { MoreVertical } from 'lucide-react';
+import { RiArrowDownSLine } from 'react-icons/ri';
 
 export interface TreeNodeRowProps {
   node: NoteItem;
@@ -50,6 +51,10 @@ export function TreeNodeRow({
   rowStyle,
 }: TreeNodeRowProps) {
   const paddingLeft = 12 + depth * 14;
+  const { data: descendantsWithLearning } = useDescendantsWithLearningCount(
+    hasChildren ? nodeId : undefined
+  );
+  const hasDescendantsInGlobal = (descendantsWithLearning?.count ?? 0) > 0;
 
   return (
     <div
@@ -73,18 +78,29 @@ export function TreeNodeRow({
         <Button
           variant="ghost"
           icon
+          className="notes-tree-row__expand-btn"
           onClick={() => hasChildren && toggleExpand(nodeId)}
           style={{
             cursor: hasChildren ? 'pointer' : 'default',
             flex: 0,
           }}
         >
-          {hasChildren ? (isExpanded ? '▼' : '▶') : ' '}
+          {hasChildren && (
+            <span
+              className={cn(
+                'notes-tree-row__chevron',
+                !isExpanded && 'notes-tree-row__chevron--collapsed'
+              )}
+              aria-hidden
+            >
+              <RiArrowDownSLine />
+            </span>
+          )}
         </Button>
         <Button
           variant="ghost"
           onClick={() => navigate(nodeId)}
-          className="justify-start"
+          className="notes-tree-row__page-btn justify-start"
           style={{
             flex: 1,
             textAlign: 'left',
@@ -93,7 +109,7 @@ export function TreeNodeRow({
             whiteSpace: 'nowrap',
             color: isActive ? '#fff' : '#d1d5db',
             fontSize: '14px',
-            marginLeft: '2px',
+            paddingLeft: '5px',
           }}
         >
           {node.title || DEFAULT_NOTE_TITLE}
@@ -103,6 +119,7 @@ export function TreeNodeRow({
             <Button
               variant="ghost"
               icon
+              className="menu-trigger-btn"
               onClick={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
               title="Page options"
@@ -111,31 +128,17 @@ export function TreeNodeRow({
               <MoreVertical className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {isFavorite ? (
-              <DropdownMenuItem
-                onClick={() => onRemoveFromFavorites?.(nodeId)}
-              >
-                Remove from Favorites
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem
-                onClick={() => onAddToFavorites?.(nodeId)}
-              >
-                Add to Favorites
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => onCreateChild(nodeId)}>
-              Add new page
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => onDeletePage(nodeId)}
-              disabled={isDeleting}
-            >
-              Delete page
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+          <NotePageActionsMenu
+            noteId={nodeId}
+            isFavorite={isFavorite}
+            hasChildren={hasChildren}
+            hasDescendantsInGlobal={hasDescendantsInGlobal}
+            onAddToFavorites={onAddToFavorites}
+            onRemoveFromFavorites={onRemoveFromFavorites}
+            onCreateChild={onCreateChild}
+            onDelete={onDeletePage}
+            isDeleting={isDeleting}
+          />
         </DropdownMenu>
       </div>
     </div>

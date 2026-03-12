@@ -28,7 +28,7 @@ import type {
   NoteBreadcrumbsProps,
 } from './NoteBreadcrumbs.types';
 
-const TRUNCATE_CLASS = 'max-w-[220px] truncate inline-block';
+const TRUNCATE_CLASS = 'max-w-[130px] sm:max-w-[220px] truncate inline-block';
 const MAX_VISIBLE_LINKS = 3;
 
 function BreadcrumbEllipsisDropdown({
@@ -45,7 +45,7 @@ function BreadcrumbEllipsisDropdown({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+              className="menu-trigger-btn shrink-0 text-muted-foreground hover:text-foreground"
             >
               <BreadcrumbEllipsis />
               <span className="sr-only">Toggle menu</span>

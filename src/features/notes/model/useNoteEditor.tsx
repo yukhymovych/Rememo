@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateBlockNote, useEditorChange } from '@blocknote/react';
-import { BlockNoteSchema, createCodeBlockSpec } from '@blocknote/core';
-import { codeBlockOptions } from '@blocknote/code-block';
 import { filterSuggestionItems, insertOrUpdateBlockForSlashMenu } from '@blocknote/core/extensions';
 import { RiFileTextLine } from 'react-icons/ri';
 import {
@@ -13,24 +11,37 @@ import {
   useNotesQuery,
   useNoteEmbeds,
   useUpdateNoteLastVisited,
+  useSetNoteFavorite,
+  NOTE_KEY,
 } from './useNotes';
+import { useQueryClient } from '@tanstack/react-query';
+import * as notesApi from '../api/notesApi';
+import { createChildNote } from '../lib/createChildNote';
 import { DEFAULT_NOTE_TITLE } from './types';
-import { EmbeddedPageBlock } from '../blocks/EmbeddedPageBlock';
+import { createNoteEditorSchema } from '../lib/noteEditorSchema';
 import { ensureBlocksArray, DEFAULT_BLOCKS } from '../lib/blocks';
 import { notesRoutes } from '../lib/routes';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
+import { useGenerateStudyQuestions } from '@/features/study-questions/model/useStudyQuestions';
+import type { GenerateStudyQuestionsMode } from '@/features/study-questions/domain/studyQuestions.types';
+import { showToast } from '@/shared/lib/toast';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+const MIN_SELECTION_TEXT_LENGTH = 30;
 
 export function useNoteEditor(id: string | undefined) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: note, isLoading, error } = useNoteQuery(id, true);
   const { data: notes } = useNotesQuery();
   const { data: embeds } = useNoteEmbeds(id, !!id);
   const updateMutation = useUpdateNote();
   const deleteMutation = useDeleteNote();
   const createMutation = useCreateNote();
+  const setNoteFavorite = useSetNoteFavorite();
   const updateLastVisited = useUpdateNoteLastVisited();
+  const generateOneQuestionFromSelection = useGenerateStudyQuestions(id ?? '');
+  const generateUpToFiveQuestionsFromSelection = useGenerateStudyQuestions(id ?? '');
 
   const [title, setTitle] = useState('');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -42,14 +53,7 @@ export function useNoteEditor(id: string | undefined) {
     return map;
   }, [notes, embeds]);
 
-  const schema = useMemo(() => {
-    return BlockNoteSchema.create().extend({
-      blockSpecs: {
-        codeBlock: createCodeBlockSpec(codeBlockOptions),
-        embeddedPage: EmbeddedPageBlock(),
-      },
-    });
-  }, []);
+  const schema = useMemo(() => createNoteEditorSchema(), []);
 
   const initialContent = note ? ensureBlocksArray(note.rich_content) : DEFAULT_BLOCKS;
 
@@ -98,12 +102,54 @@ export function useNoteEditor(id: string | undefined) {
     [scheduleSave],
   );
 
-  const handleDelete = useCallback(async () => {
-    if (!id) return;
-    if (!window.confirm('Delete this note?')) return;
-    await deleteMutation.mutateAsync(id);
-    navigate(notesRoutes.list());
-  }, [id, deleteMutation, navigate]);
+  const handleDelete = useCallback(
+    async (noteId?: string) => {
+      const targetId = noteId ?? id;
+      if (!targetId) return;
+      if (!window.confirm('Delete this note?')) return;
+      await deleteMutation.mutateAsync(targetId);
+      navigate(notesRoutes.list());
+    },
+    [id, deleteMutation, navigate]
+  );
+
+  const handleAddToFavorites = useCallback(
+    async (noteId: string) => {
+      await setNoteFavorite.mutateAsync({ id: noteId, isFavorite: true });
+    },
+    [setNoteFavorite]
+  );
+
+  const handleRemoveFromFavorites = useCallback(
+    async (noteId: string) => {
+      await setNoteFavorite.mutateAsync({ id: noteId, isFavorite: false });
+    },
+    [setNoteFavorite]
+  );
+
+  const handleCreateChild = useCallback(
+    async (parentId: string) => {
+      const child = await createChildNote(parentId, {
+        createNote: (payload) =>
+          createMutation.mutateAsync({
+            title: payload.title,
+            parent_id: payload.parent_id,
+            rich_content: payload.rich_content,
+          }),
+        updateNote: (noteId, payload) =>
+          updateMutation.mutateAsync({ id: noteId, payload }),
+        getParentNote: async (parentNoteId) => {
+          const cached = queryClient.getQueryData<{
+            title?: string;
+            rich_content?: unknown;
+          }>(NOTE_KEY(parentNoteId));
+          return cached ?? notesApi.getNote(parentNoteId);
+        },
+      });
+      navigate(notesRoutes.editor(child.id));
+    },
+    [createMutation, updateMutation, queryClient, navigate]
+  );
 
   const getSlashMenuItems = useCallback(
     async (query: string) => {
@@ -139,6 +185,27 @@ export function useNoteEditor(id: string | undefined) {
     [editor, id, createMutation],
   );
 
+  const handleGenerateQuestionsFromSelection = useCallback(
+    (selectedText: string, mode: GenerateStudyQuestionsMode) => {
+      if (!id) return;
+      const text = selectedText.trim();
+      if (text.length < MIN_SELECTION_TEXT_LENGTH) return;
+      showToast('Q/A creation has started');
+
+      const run = async () => {
+        const mutation =
+          mode === 'one' ? generateOneQuestionFromSelection : generateUpToFiveQuestionsFromSelection;
+        const created = await mutation.mutateAsync({ text, mode });
+        if (created.length > 0) {
+          showToast('Q/A creation completed');
+        }
+      };
+
+      run().catch(() => {});
+    },
+    [id, generateOneQuestionFromSelection, generateUpToFiveQuestionsFromSelection],
+  );
+
   return {
     note,
     isLoading,
@@ -150,8 +217,18 @@ export function useNoteEditor(id: string | undefined) {
     handleTitleChange,
     saveStatus,
     handleDelete,
+    handleAddToFavorites,
+    handleRemoveFromFavorites,
+    handleCreateChild,
     isDeleting: deleteMutation.isPending,
+    isFavorite: notes?.find((n) => n.id === id)?.is_favorite ?? false,
     noteTitlesMap,
     getSlashMenuItems,
+    handleGenerateOneQuestionFromSelection: (selectedText: string) =>
+      handleGenerateQuestionsFromSelection(selectedText, 'one'),
+    handleGenerateUpToFiveQuestionsFromSelection: (selectedText: string) =>
+      handleGenerateQuestionsFromSelection(selectedText, 'up_to_five'),
+    isGeneratingOneQuestionFromSelection: generateOneQuestionFromSelection.isPending,
+    isGeneratingUpToFiveQuestionsFromSelection: generateUpToFiveQuestionsFromSelection.isPending,
   };
 }

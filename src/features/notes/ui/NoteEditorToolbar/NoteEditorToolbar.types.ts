@@ -6,6 +6,10 @@ export interface NoteEditorToolbarProps {
   notes: NoteListItem[] | undefined;
   currentTitle: string;
   saveStatus: SaveStatus;
-  onDelete: () => void;
+  isFavorite: boolean;
+  onAddToFavorites?: (noteId: string) => void;
+  onRemoveFromFavorites?: (noteId: string) => void;
+  onCreateChild: (parentId: string) => void;
+  onDelete: (noteId: string) => void;
   isDeleting: boolean;
 }

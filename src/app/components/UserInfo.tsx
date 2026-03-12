@@ -1,5 +1,15 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { decodeTokenPayload } from '@/shared/lib/auth';
+import {
+  useDeleteFutureSessionsDebug,
+  useDeleteTodayScopedSessionsDebug,
+  useRefreshAllGradesDebug,
+  useRefillSessionDebug,
+  useResetSessionDebug,
+  useStartLearningSession,
+} from '@/features/learning/model/useStartLearningSession';
+import { learningRoutes } from '@/features/learning/lib/routes';
 import {
   Avatar,
   AvatarFallback,
@@ -9,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui';
-import { LogOut } from 'lucide-react';
+import { FolderMinus, LogOut, Plus, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function getInitials(username: string): string {
@@ -21,9 +31,41 @@ function getInitials(username: string): string {
 }
 
 export function UserInfo() {
+  const navigate = useNavigate();
   const { token, logout } = useAuth();
   const payload = token ? decodeTokenPayload(token) : null;
   const username = payload?.username ?? 'User';
+  const deleteFutureSessions = useDeleteFutureSessionsDebug();
+  const deleteTodayScopedSessions = useDeleteTodayScopedSessionsDebug();
+  const refreshAllGrades = useRefreshAllGradesDebug();
+  const refillSession = useRefillSessionDebug();
+  const resetSession = useResetSessionDebug();
+  const startSession = useStartLearningSession();
+
+  const handleAddMore = () => {
+    refillSession.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data?.items.some((i) => i.state === 'pending')) {
+          navigate(learningRoutes.session());
+        }
+      },
+    });
+  };
+
+  const handleResetSession = () => {
+    resetSession.mutate(undefined, {
+      onSuccess: () => {
+        startSession.mutate(undefined, {
+          onSuccess: (data) => {
+            if (data) navigate(learningRoutes.session());
+          },
+        });
+      },
+    });
+  };
+
+  const isResetting =
+    resetSession.isPending || (resetSession.isSuccess && startSession.isPending);
 
   return (
     <DropdownMenu>
@@ -44,6 +86,52 @@ export function UserInfo() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem
+          onClick={handleAddMore}
+          disabled={refillSession.isPending}
+          className="text-muted-foreground"
+        >
+          <Plus className="size-4" />
+          {refillSession.isPending ? 'Adding...' : 'Add more items (debug)'}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={handleResetSession}
+          disabled={isResetting}
+          className="text-muted-foreground"
+        >
+          <RotateCcw className="size-4" />
+          {isResetting ? 'Resetting...' : 'Reset session (debug)'}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => deleteFutureSessions.mutate(undefined)}
+          disabled={deleteFutureSessions.isPending}
+          className="text-muted-foreground"
+        >
+          <Trash2 className="size-4" />
+          {deleteFutureSessions.isPending
+            ? 'Deleting...'
+            : 'Delete future sessions (debug)'}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => deleteTodayScopedSessions.mutate(undefined)}
+          disabled={deleteTodayScopedSessions.isPending}
+          className="text-muted-foreground"
+        >
+          <FolderMinus className="size-4" />
+          {deleteTodayScopedSessions.isPending
+            ? 'Deleting...'
+            : 'Delete today scoped sessions (debug)'}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => refreshAllGrades.mutate(undefined)}
+          disabled={refreshAllGrades.isPending}
+          className="text-muted-foreground"
+        >
+          <RefreshCw className="size-4" />
+          {refreshAllGrades.isPending
+            ? 'Refreshing...'
+            : 'Refresh all grades (debug)'}
+        </DropdownMenuItem>
         <DropdownMenuItem variant="destructive" onClick={logout}>
           <LogOut className="size-4" />
           Logout

@@ -37,23 +37,9 @@
   margin-bottom: 10px;
 }
 
-.notes-list-page__recents {
-  margin-bottom: 24px;
-}
-
-.notes-list-page__recents-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #9ca3af;
-  margin-bottom: 12px;
-}
-
-.notes-list-page__recents-icon {
-  flex-shrink: 0;
-  color: #9ca3af;
+.notes-list-page__middle {
+  width: min(980px, 100%);
+  margin: 0 auto 8px;
 }
 
 .notes-list-page__section-title {
@@ -66,4 +52,19 @@
 .notes-list-page__list {
   list-style: none;
   padding: 0;
+}
+
+@media (max-width: 767px) {
+  .notes-list-page__container {
+    padding: 14px;
+  }
+
+  .notes-list-page__toolbar-actions {
+    padding-left: 52px;
+  }
+
+  .notes-list-page__header {
+    margin: 20px 0 28px;
+    font-size: 30px;
+  }
 }

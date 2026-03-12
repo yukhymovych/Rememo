@@ -1,0 +1,70 @@
+.learning-sidebar-card {
+  margin-top: 8px;
+  padding: 8px;
+  border-top: 1px solid #222;
+}
+
+.learning-sidebar-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+.learning-sidebar-card__icon {
+  flex-shrink: 0;
+}
+
+.learning-sidebar-card__stats {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.learning-sidebar-card__remaining {
+  font-weight: 600;
+  color: #fff;
+}
+
+.learning-sidebar-card__separator {
+  opacity: 0.6;
+}
+
+.learning-sidebar-card__total {
+  color: #d1d5db;
+}
+
+.learning-sidebar-card__label {
+  margin-left: 2px;
+}
+
+.learning-sidebar-card__hint {
+  margin-top: 2px;
+  color: #6b7280;
+}
+
+.learning-sidebar-card__loading {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.learning-sidebar-card__scoped {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #333;
+}
+
+.learning-sidebar-card__scoped-label {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.learning-sidebar-card__scoped-btn {
+  margin-top: 4px;
+  font-size: 12px;
+  justify-content: flex-start;
+}

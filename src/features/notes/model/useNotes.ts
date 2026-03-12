@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as notesApi from '../api/notesApi';
+import { LEARNING_KEYS } from '@/features/learning/model/learning.queries';
 
 const NOTES_KEY = ['notes'];
 export const NOTE_KEY = (id: string) => ['notes', id];
@@ -52,6 +53,7 @@ export function useDeleteNote() {
     mutationFn: notesApi.deleteNote,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+      queryClient.invalidateQueries({ queryKey: LEARNING_KEYS.all });
     },
   });
 }

@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { notesRouter } from './modules/notes/notes.routes.js';
+import { learningRouter } from './modules/learning/learning.routes.js';
+import { studyQuestionsAnswersRouter } from './modules/studyQuestionsAnswers/studyQuestionsAnswers.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 if (!process.env.JWT_SECRET) {
@@ -10,9 +12,17 @@ if (!process.env.JWT_SECRET) {
 
 export const app = express();
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-}));
+// Allow localhost and local network origins (for mobile testing via http://192.168.x.x:5173)
+const allowedOrigin = (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+  if (!origin) return cb(null, true);
+  const ok =
+    origin === 'http://localhost:5173' ||
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.startsWith('http://192.168.') ||
+    origin.startsWith('http://10.');
+  cb(null, ok);
+};
+app.use(cors({ origin: allowedOrigin }));
 
 app.use(express.json());
 
@@ -22,5 +32,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/notes', notesRouter);
+app.use('/learning', learningRouter);
+app.use('/study-questions', studyQuestionsAnswersRouter);
 
 app.use(errorHandler);

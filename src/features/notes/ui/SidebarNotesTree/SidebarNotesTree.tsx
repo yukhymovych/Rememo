@@ -1,16 +1,22 @@
 import { useCallback } from 'react';
 import { FileStack } from 'lucide-react';
+import { RiArrowDownSLine } from 'react-icons/ri';
 import { useNotesTree } from '../../model/useNotesTree';
 import { TreeNode } from './TreeNode';
 import { DndContextWrapper } from './DndContextWrapper';
 import { DropZone } from './DropZone';
 import { SidebarRecentsList } from '../SidebarRecentsList/SidebarRecentsList';
 import { SidebarFavoritesList } from '../SidebarFavoritesList/SidebarFavoritesList';
+import { LearningSidebarCard } from '@/features/learning/ui/LearningSidebarCard';
 import { Button } from '@/shared/ui';
 import { UserInfo } from '@/app/components/UserInfo';
 import './SidebarNotesTree.css';
 
-export function SidebarNotesTree() {
+export interface SidebarNotesTreeProps {
+  onNavigate?: () => void;
+}
+
+export function SidebarNotesTree({ onNavigate }: SidebarNotesTreeProps) {
   const {
     isLoading,
     error,
@@ -73,6 +79,14 @@ export function SidebarNotesTree() {
     [byId, childrenByParent, rootIds.length, handleMoveNote]
   );
 
+  const handleNavigateAndClose = useCallback(
+    (id: string) => {
+      handleNavigate(id);
+      onNavigate?.();
+    },
+    [handleNavigate, onNavigate]
+  );
+
   if (isLoading) {
     return <div className="sidebar-loading">Loading...</div>;
   }
@@ -94,13 +108,14 @@ export function SidebarNotesTree() {
       >
         {createNote.isPending ? 'Creating...' : 'New page'}
       </Button>
+      <LearningSidebarCard />
       <SidebarRecentsList
         recentIds={recentIds}
         byId={byId}
         recentFormattedTimes={recentFormattedTimes}
         isExpanded={recentsExpanded}
         onToggleExpand={toggleRecentsExpand}
-        navigate={handleNavigate}
+        navigate={handleNavigateAndClose}
         activeId={activeId}
       />
       <SidebarFavoritesList
@@ -116,7 +131,7 @@ export function SidebarNotesTree() {
         onCreateChild={handleCreateChild}
         onDeletePage={handleDeletePage}
         isDeleting={deleteNote.isPending}
-        navigate={handleNavigate}
+        navigate={handleNavigateAndClose}
         activeId={activeId}
       />
       <div className="sidebar-all-pages">
@@ -128,8 +143,11 @@ export function SidebarNotesTree() {
         >
           <FileStack className="sidebar-all-pages__icon size-4" />
           <span>All pages</span>
-          <span className="sidebar-all-pages__chevron">
-            {allPagesExpanded ? '▼' : '▶'}
+          <span
+            className={`sidebar-all-pages__chevron ${!allPagesExpanded ? 'sidebar-all-pages__chevron--collapsed' : ''}`}
+            aria-hidden
+          >
+            <RiArrowDownSLine />
           </span>
         </Button>
         {allPagesExpanded && (
@@ -150,7 +168,7 @@ export function SidebarNotesTree() {
                   onAddToFavorites={handleAddToFavorites}
                   onRemoveFromFavorites={handleRemoveFromFavorites}
                   isDeleting={deleteNote.isPending}
-                  navigate={handleNavigate}
+                  navigate={handleNavigateAndClose}
                   activeId={activeId}
                 />
               ))}

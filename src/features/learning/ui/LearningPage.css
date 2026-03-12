@@ -1,0 +1,172 @@
+.learning-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #1a1a1a;
+}
+
+.learning-page-loading,
+.learning-page-error,
+.learning-page-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  color: #9ca3af;
+}
+
+.learning-page-error {
+  color: #ef4444;
+}
+
+.learning-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid #222;
+  flex-shrink: 0;
+}
+
+.learning-progress-header__progress {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.learning-progress-header__stop {
+  color: #9ca3af;
+}
+
+.learning-page__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow: auto;
+}
+
+.learning-reveal {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.learning-reveal__title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 20px;
+}
+
+.learning-reveal__show-btn {
+  margin-top: 12px;
+}
+
+.learning-reveal__content {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #d1d5db;
+  white-space: pre-wrap;
+}
+
+.learning-reveal__rich-content {
+  min-height: 200px;
+  padding: 6px 0;
+}
+
+.learning-reveal__rich-content .bn-editor {
+  padding: 0;
+}
+
+.learning-page__grade-bar {
+  position: sticky;
+  bottom: 0;
+  padding: 16px 0;
+  background: linear-gradient(transparent, #1a1a1a);
+}
+
+.learning-page__grade-bar .learning-grade-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.learning-page__grade-bar .learning-grade-bar__btn {
+  flex: 1;
+  min-width: 70px;
+}
+
+.learning-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+}
+
+.learning-summary__title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 12px;
+}
+
+.learning-summary__stats {
+  font-size: 16px;
+  color: #9ca3af;
+  margin: 0 0 24px;
+}
+
+.learning-summary__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.learning-summary__btn {
+  min-width: 120px;
+}
+
+.learning-summary__btn--debug {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.learning-animated-switch {
+  flex: 1;
+}
+
+@media (max-width: 767px) {
+  .learning-progress-header {
+    padding: 10px 12px;
+  }
+
+  .learning-page__main {
+    padding: 14px;
+  }
+
+  .learning-reveal {
+    padding: 12px 0;
+  }
+
+  .learning-reveal__title {
+    font-size: 20px;
+    margin: 0 0 12px;
+  }
+
+  .learning-summary {
+    padding: 20px;
+  }
+
+  .learning-summary__title {
+    font-size: 20px;
+  }
+}
