@@ -4,6 +4,15 @@
   align-items: stretch;
   margin-bottom: 16px;
   gap: 8px;
+
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(26, 26, 26, 0.8); 
+  backdrop-filter: blur(2px);
+  padding: 10px;
+  border-radius: 6px;
+  /* border: 1px solid #3a3a42; */
 }
 
 .note-editor-toolbar__top-row {
@@ -61,7 +70,7 @@
 
 @media (max-width: 767px) {
   .note-editor-toolbar__top-row {
-    padding-left: 50px;
+    padding-left: 35px;
   }
 
   .note-editor-toolbar__due {
@@ -80,7 +89,6 @@
 
 @media (max-width: 479px) {
   .note-editor-toolbar__top-row {
-    padding-left: 46px;
     gap: 8px;
   }
 }
