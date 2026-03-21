@@ -1,6 +1,6 @@
 import type { BlockNoteEditor } from '@blocknote/core';
 
-export type ExportFormat = 'html' | 'txt';
+export type ExportFormat = 'html' | 'txt' | 'pdf';
 export type ImportFormat = 'html' | 'txt' | 'docx';
 export type ImportTarget = 'document-end';
 
@@ -9,6 +9,13 @@ export interface ExportArtifact {
   fileName: string;
   mimeType: string;
   content: string;
+}
+
+export interface PrintExportArtifact {
+  format: 'pdf';
+  fileName: string;
+  title: string;
+  htmlDocument: string;
 }
 
 export interface ExportContext {
@@ -31,7 +38,7 @@ export interface ActiveNoteExportInput extends ExportContext {
   editor: BlockNoteEditor<any, any, any>;
 }
 
-export type TreeExportFormat = ExportFormat;
+export type TreeExportFormat = 'html' | 'txt';
 
 export interface SubtreeExportFailure {
   noteId: string;

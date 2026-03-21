@@ -5,6 +5,7 @@ import * as notesApi from '../api/notesApi';
 import { NOTE_KEY } from './useNotes';
 import {
   exportActiveNoteAsHtml,
+  exportActiveNoteAsPdfPrint,
   exportActiveNoteAsText,
   exportSubtreeAsZip,
   importFileIntoEditor,
@@ -12,6 +13,7 @@ import {
 import type { ExportFormat } from '../domain/noteImportExport.types';
 import type { Note, NoteListItem } from './types';
 import { downloadFile } from '@/shared/lib/downloadFile';
+import { printHtmlDocument } from '@/shared/lib/printHtmlDocument';
 import { showToast } from '@/shared/lib/toast';
 
 export interface UseNoteImportExportInput {
@@ -80,8 +82,30 @@ export function useNoteImportExport({
       }
 
       setIsExporting(true);
-      setPendingLabel('Exporting...');
+      setPendingLabel(format === 'pdf' ? 'Preparing PDF...' : 'Exporting...');
       try {
+        if (format === 'pdf') {
+          const printWindow = window.open('', '_blank');
+          if (!printWindow) {
+            throw new Error('Could not open the browser print window.');
+          }
+
+          const artifact = exportActiveNoteAsPdfPrint({
+            editor: activeEditor,
+            noteId,
+            noteTitle,
+            noteTitlesById,
+          });
+
+          await printHtmlDocument({
+            htmlDocument: artifact.htmlDocument,
+            title: artifact.title,
+            printWindow,
+          });
+          showToast('Opened the browser print dialog.');
+          return;
+        }
+
         const artifact =
           format === 'html'
             ? exportActiveNoteAsHtml({
@@ -208,7 +232,7 @@ export function useNoteImportExport({
       isImporting,
       isBusy,
       pendingLabel,
-      canExportPdf: false,
+      canExportPdf: canExport,
       canExportTree,
       canImport,
       treeExportFormats: TREE_EXPORT_FORMATS,

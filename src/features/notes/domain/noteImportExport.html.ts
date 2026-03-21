@@ -137,6 +137,125 @@ function escapeHtml(value: string): string {
     .replaceAll('"', '&quot;');
 }
 
+const PRINT_EXPORT_DOCUMENT_STYLES = `
+    :root {
+      color-scheme: light;
+      --rememo-print-text: #111827;
+      --rememo-print-muted: #374151;
+      --rememo-print-border: rgba(17, 24, 39, 0.22);
+      --rememo-print-code-bg: #f3f4f6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    @page {
+      margin: 16mm;
+    }
+
+    html,
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: var(--rememo-print-text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      padding: 0;
+    }
+
+    [data-rememo-export="print-note"] {
+      max-width: none;
+      margin: 0;
+    }
+
+    [data-rememo-export-content] {
+      font-size: 12pt;
+      line-height: 1.65;
+      word-break: break-word;
+    }
+
+    [data-rememo-export-content] > :first-child {
+      margin-top: 0;
+    }
+
+    [data-rememo-export-content] h1,
+    [data-rememo-export-content] h2,
+    [data-rememo-export-content] h3,
+    [data-rememo-export-content] h4,
+    [data-rememo-export-content] h5,
+    [data-rememo-export-content] h6 {
+      break-after: avoid-page;
+      page-break-after: avoid;
+      line-height: 1.2;
+      margin: 1.25em 0 0.6em;
+    }
+
+    [data-rememo-export-content] h1 { font-size: 24pt; }
+    [data-rememo-export-content] h2 { font-size: 20pt; }
+    [data-rememo-export-content] h3 { font-size: 16pt; }
+    [data-rememo-export-content] h4 { font-size: 14pt; }
+
+    [data-rememo-export-content] p,
+    [data-rememo-export-content] ul,
+    [data-rememo-export-content] ol,
+    [data-rememo-export-content] pre,
+    [data-rememo-export-content] blockquote,
+    [data-rememo-export-content] hr {
+      margin: 0.8em 0;
+    }
+
+    [data-rememo-export-content] ul,
+    [data-rememo-export-content] ol {
+      padding-left: 1.5em;
+    }
+
+    [data-rememo-export-content] blockquote {
+      border-left: 3px solid var(--rememo-print-border);
+      color: var(--rememo-print-muted);
+      padding-left: 1em;
+    }
+
+    [data-rememo-export-content] hr {
+      border: 0;
+      border-top: 1px solid var(--rememo-print-border);
+    }
+
+    [data-rememo-export-content] a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    [data-rememo-export-content] code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.92em;
+      background: var(--rememo-print-code-bg);
+      padding: 0.08em 0.28em;
+      border-radius: 4px;
+    }
+
+    [data-rememo-export-content] pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: var(--rememo-print-code-bg);
+      border: 1px solid var(--rememo-print-border);
+      border-radius: 8px;
+      padding: 0.9em 1em;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    [data-rememo-export-content] pre code {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+    }
+`;
+
 export function buildExportHtmlDocument(input: {
   title: string;
   bodyHtml: string;
@@ -157,6 +276,33 @@ export function buildExportHtmlDocument(input: {
     <style>${EXPORT_DOCUMENT_STYLES}</style>
   </head>
   <body data-rememo-export="note">
+    <main data-rememo-export-content>
+      ${input.bodyHtml}
+    </main>
+  </body>
+</html>`;
+}
+
+export function buildPrintExportHtmlDocument(input: {
+  title: string;
+  bodyHtml: string;
+  noteId?: string;
+}) {
+  const title = input.title.trim() || DEFAULT_EXPORT_NOTE_TITLE;
+  const noteIdMeta = input.noteId
+    ? `\n    <meta name="rememo-note-id" content="${escapeHtml(input.noteId)}" />`
+    : '';
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="rememo-export-version" content="${NOTE_EXPORT_VERSION}" />${noteIdMeta}
+    <title>${escapeHtml(title)}</title>
+    <style>${PRINT_EXPORT_DOCUMENT_STYLES}</style>
+  </head>
+  <body data-rememo-export="print-note">
     <main data-rememo-export-content>
       ${input.bodyHtml}
     </main>

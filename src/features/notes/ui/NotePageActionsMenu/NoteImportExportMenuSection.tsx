@@ -46,6 +46,14 @@ export function NoteImportExportMenuSection({
           >
             Export as TXT
           </DropdownMenuItem>
+          {importExport.canExportPdf ? (
+            <DropdownMenuItem
+              disabled={actionDisabled}
+              onClick={() => void importExport.handleExport('pdf')}
+            >
+              Export as PDF
+            </DropdownMenuItem>
+          ) : null}
           {shouldShowTreeExport
             ? importExport.treeExportFormats.map((format) => (
                 <DropdownMenuItem

@@ -12,6 +12,7 @@ import {
 } from '../domain/noteImportExport.files';
 import {
   buildExportHtmlDocument,
+  buildPrintExportHtmlDocument,
   normalizeImportedHtml,
   sanitizeImportedHtml,
 } from '../domain/noteImportExport.html';
@@ -24,6 +25,7 @@ import type {
   ExportArtifact,
   ImportFileInput,
   ParseImportHtmlInput,
+  PrintExportArtifact,
   ReadImportFileResult,
   StoredNoteExportInput,
   StoredNoteHtmlExport,
@@ -38,6 +40,18 @@ function getExportableBlocks(
   noteTitlesById?: Map<string, string>
 ) {
   return createExportableBlocks(blocks, noteTitlesById);
+}
+
+function renderStoredNoteBodyHtml(
+  input: StoredNoteExportInput
+): Pick<StoredNoteHtmlExport, 'bodyHtml' | 'exportableBlocks'> {
+  const exportableBlocks = getExportableBlocks(input.blocks, input.noteTitlesById);
+  const editor = createTemporaryExportEditor(exportableBlocks);
+
+  return {
+    bodyHtml: editor.blocksToFullHTML(),
+    exportableBlocks,
+  };
 }
 
 async function convertDocxArrayBufferToHtml(arrayBuffer: ArrayBuffer) {
@@ -76,9 +90,7 @@ function createBlankParagraphBlock() {
 export function renderStoredNoteAsHtml(
   input: StoredNoteExportInput
 ): StoredNoteHtmlExport {
-  const exportableBlocks = getExportableBlocks(input.blocks, input.noteTitlesById);
-  const editor = createTemporaryExportEditor(exportableBlocks);
-  const bodyHtml = editor.blocksToFullHTML();
+  const { bodyHtml, exportableBlocks } = renderStoredNoteBodyHtml(input);
   const htmlDocument = buildExportHtmlDocument({
     title: input.noteTitle,
     noteId: input.noteId,
@@ -89,6 +101,28 @@ export function renderStoredNoteAsHtml(
     htmlDocument,
     bodyHtml,
     exportableBlocks,
+  };
+}
+
+export function exportActiveNoteAsPdfPrint(
+  input: ActiveNoteExportInput
+): PrintExportArtifact {
+  const { bodyHtml } = renderStoredNoteBodyHtml({
+    blocks: input.editor.document,
+    noteTitle: input.noteTitle,
+    noteId: input.noteId,
+    noteTitlesById: input.noteTitlesById,
+  });
+
+  return {
+    format: 'pdf',
+    fileName: buildExportFileName(input.noteTitle, 'pdf'),
+    title: input.noteTitle,
+    htmlDocument: buildPrintExportHtmlDocument({
+      title: input.noteTitle,
+      noteId: input.noteId,
+      bodyHtml,
+    }),
   };
 }
 
