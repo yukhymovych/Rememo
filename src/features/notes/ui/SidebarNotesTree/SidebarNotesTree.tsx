@@ -103,17 +103,33 @@ export function SidebarNotesTree({ onNavigate }: SidebarNotesTreeProps) {
   return (
     <div className="sidebar-container">
       <div className="sidebar-content">
-        <div className="sidebar-user-info">
-          <UserInfo />
+        <div className="sidebar-header">
+          <div className="sidebar-brand">
+            <Link
+              to="/"
+              className="sidebar-brand__link"
+              aria-label="Go to home page"
+              onClick={onNavigate}
+            >
+              <img src="/logo.png" alt="Rememo" className="sidebar-brand__logo" />
+            </Link>
+          </div>
+          <div className="sidebar-user-info">
+            <UserInfo />
+          </div>
         </div>
-        <Button
-          variant="ghost-muted"
-          fullWidth
-          onClick={handleCreateRoot}
-          disabled={createNote.isPending}
-        >
-          {createNote.isPending ? 'Creating...' : 'New page'}
-        </Button>
+        <div className="sidebar-new-page-button">
+          <Button
+            variant="ghost"
+            className="sidebar-new-page-button"
+            size='sm'
+            fullWidth
+            onClick={handleCreateRoot}
+            disabled={createNote.isPending}
+          >
+            {createNote.isPending ? 'Creating...' : 'New page'}
+          </Button>
+        </div>
         <LearningSidebarCard />
         <SidebarRecentsList
           recentIds={recentIds}
@@ -142,7 +158,7 @@ export function SidebarNotesTree({ onNavigate }: SidebarNotesTreeProps) {
         />
         <div className="sidebar-all-pages">
           <Button
-            variant="ghost-muted"
+            variant="ghost"
             fullWidth
             onClick={toggleAllPagesExpand}
             className="sidebar-all-pages__header"
@@ -186,7 +202,7 @@ export function SidebarNotesTree({ onNavigate }: SidebarNotesTreeProps) {
       </div>
       <div className="sidebar-footer">
         <Button
-          variant="ghost-muted"
+          variant="ghost"
           fullWidth
           asChild
           className={isTrashActive ? 'sidebar-trash-link sidebar-trash-link--active' : 'sidebar-trash-link'}
