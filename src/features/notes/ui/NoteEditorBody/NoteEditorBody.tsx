@@ -4,7 +4,7 @@ import { FormattingToolbarController, SuggestionMenuController } from '@blocknot
 import { useMediaQuery } from '@mantine/hooks';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
-import { NoteTitlesContext } from '../../blocks/EmbeddedPageBlock';
+import { NoteTitlesContext } from '../../blocks/embeddedPage.context';
 import type { NoteEditorBodyProps } from './NoteEditorBody.types';
 import { MobileBlockToolbar } from './MobileBlockToolbar';
 import { SelectionQaToolbar } from './SelectionQaToolbar';

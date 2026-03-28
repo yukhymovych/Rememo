@@ -48,6 +48,7 @@ export function NotesListPageView({
         <div className="notes-list-page__toolbar-actions">
           <Button
             variant="primary"
+            size='sm'
             onClick={onNewNote}
             disabled={createPending}
           >
@@ -56,6 +57,7 @@ export function NotesListPageView({
           {showLearningSessionButton && (
             <Button
               variant="ghost-muted"
+              size='sm'
               onClick={onLearningSessionClick}
               disabled={learningSessionButtonDisabled}
             >

@@ -96,6 +96,7 @@ export function TrashPage() {
               <div className="trash-page__content-actions">
                 <Button
                   variant="secondary"
+                  size='sm'
                   onClick={() => handleRestore(selectedNote.id)}
                   disabled={isRestoring || isPermanentlyDeleting}
                 >
@@ -103,7 +104,8 @@ export function TrashPage() {
                   Restore
                 </Button>
                 <Button
-                  variant="danger"
+                  variant="primary"
+                  size='sm'
                   onClick={() => handlePermanentDelete(selectedNote.id)}
                   disabled={isRestoring || isPermanentlyDeleting}
                 >
