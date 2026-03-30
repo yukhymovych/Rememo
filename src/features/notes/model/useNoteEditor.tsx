@@ -95,6 +95,28 @@ export function useNoteEditor(id: string | undefined) {
     setTitle(displayTitle);
   }, [note]);
 
+  useEffect(() => {
+    if (!note || !editor) return;
+
+    const nextBlocks = ensureBlocksArray(note.rich_content);
+    const nextSerialized = JSON.stringify(nextBlocks);
+    const currentSerialized = JSON.stringify(editor.document);
+
+    if (currentSerialized === nextSerialized) {
+      return;
+    }
+
+    const currentBlockIds = editor.document.map((block) => block.id);
+    if (currentBlockIds.length === 0) {
+      return;
+    }
+
+    // Keep the editor in sync when the page changes remotely, such as
+    // when drag-and-drop rewrites embedded child blocks on a parent page.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    editor.replaceBlocks(currentBlockIds, nextBlocks as any);
+  }, [editor, note]);
+
   const chromeTitle =
     title.trim() ||
     (userEditedTitle ? DEFAULT_NOTE_TITLE : (note?.title || DEFAULT_NOTE_TITLE));
