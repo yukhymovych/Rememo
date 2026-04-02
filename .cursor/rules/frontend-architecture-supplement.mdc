@@ -1,51 +1,58 @@
 ---
-description: Supplemental frontend layering, typing, state, and quality constraints
+description: Supplemental frontend rules for layering, exhaustive state handling, and implementation discipline
 alwaysApply: true
 ---
 
-# Frontend Architecture Supplement (Non-duplicate Rules)
+# Frontend Architecture Supplement
 
-This rule adds only constraints not already covered by existing rules.
+This file adds constraints that must be enforced alongside the main architecture rules.
 
 ## A) Layering
 
-- UI layer is presentational only.
-- Domain layer contains pure functions only (no React imports/usages).
-- Application layer orchestrates use-cases.
-- Data layer owns API calls and DTO mapping.
+- UI layer is presentational.
+- Application layer orchestrates use-cases and user-driven flows.
+- Domain layer contains pure rules, calculations, selectors, and invariants.
+- Data layer owns API calls, DTO parsing, and transport details.
 
-## B) Types
+## B) Async State Modeling
 
-- All shared types must live in `*.types.ts`.
-- Use discriminated unions for async/state shapes (`loading`/`success`/`error`).
-- Use exhaustive checks in `switch` statements (no `default` branch).
+- Prefer explicit async-state shapes over loose booleans.
+- Use discriminated unions for non-trivial async states.
+- Use exhaustive checks in `switch` or status branching.
+- Do not silently ignore impossible states.
 
-## D) State
+## C) Behavior Preservation
 
-- Maintain a single source of truth for each state concern.
-- No side effects inside render.
+- A refactor must preserve public behavior unless the task explicitly requires behavior change.
+- If behavior changes, it must be called out before implementation.
+- Reorganization alone is not a valid reason to alter user-visible flow.
+
+## D) Implementation Discipline
+
+- Do not refactor unrelated parts.
+- Do not mix bug fixes, feature work, cleanup, and renames in one change unless explicitly required.
+- Keep diffs reviewable and intention-revealing.
+- Prefer narrow edits over broad “improvements”.
 
 ## E) Testability
 
-- Provide unit tests for domain logic.
+- Domain logic must be independently testable.
+- Mapping logic must be independently testable.
+- State transition logic must be independently testable.
+- If logic is hard to test, the structure is probably wrong.
 
-## F) Code Quality
+## F) Failure Handling
 
-- Prefer early returns.
-- Avoid deep nesting in logic and component flow.
-- Replace magic numbers with named constants.
-- Use intent-revealing names for symbols and functions.
+- Do not swallow errors.
+- Surface meaningful error states where the user can act or recover.
+- Temporary debug code or logs must not remain in final output unless explicitly requested.
 
-## Constraints
-
-- Do not refactor unrelated parts.
-- If a requested change would violate these rules, stop and explain before continuing.
-
-## Output Format
+## G) Output Format
 
 When implementation is provided, structure it as:
-
 1. Architecture overview
-2. File plan (with purpose)
-3. Code by file
-4. Self-review checklist
+2. Impact analysis
+3. File plan
+4. Code by file
+5. Verification summary
+6. Self-review checklist

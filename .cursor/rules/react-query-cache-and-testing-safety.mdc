@@ -1,0 +1,61 @@
+---
+description: Enforce safer query-key, invalidation, cache, and test discipline for Rememo
+alwaysApply: true
+---
+
+# React Query, Cache, and Testing Safety
+
+## 1) Query Key Discipline
+
+- query keys must be centralized per feature
+- avoid inline ad-hoc keys spread across files
+- when touching notes, prefer moving toward the same dedicated key-module pattern already used by learning and study questions
+- use stable query key factories with intent-revealing names
+
+## 2) Mutation Synchronization
+
+- prefer invalidation after mutation where possible
+- manual cache patching is allowed only when truly necessary and must be justified
+- optimistic updates are not the default in this project
+- any mutation must explicitly identify which queries become stale
+
+## 3) Cache Safety
+
+- do not let stale cache create fake learning eligibility or hide recent grading
+- avoid duplicating the same data across multiple caches without a reason
+- when a mutation changes note lifecycle, review status, study questions, or sessions, verify all affected surfaces refresh correctly
+
+## 4) Required Test Targets
+
+Add or update tests for important logic changes, especially:
+- review eligibility and same-day gating
+- timezone-sensitive date logic
+- session construction and snapshot behavior
+- scheduling calculations
+- mapping and normalization helpers
+- trash/restore/hard-delete domain transitions
+- reducers, selectors, and pure state transitions
+- bug fixes in previously unstable logic
+
+## 5) Testing Strategy
+
+This project currently has limited API tests and no active Playwright usage.
+Therefore:
+- prioritize strong automated tests around critical logic and domain-sensitive behavior
+- prefer unit and integration-style tests around pure logic and orchestration boundaries
+- if UI behavior is critical, structure code so it can be tested without relying on end-to-end tooling
+
+## 6) When No Test Is Added
+
+If no test is added for a risky change, explicitly state:
+- why a test was not added
+- what manual verification was used instead
+- what residual risk remains
+
+## 7) Verification Expectations After Changes
+
+Report:
+- invalidated queries
+- tests added/updated
+- manual flows checked
+- any known stale-data risks or follow-up refactors needed, such as incomplete query-key centralization

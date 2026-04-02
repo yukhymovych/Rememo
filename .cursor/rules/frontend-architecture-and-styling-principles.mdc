@@ -1,65 +1,89 @@
 ---
-description: Frontend architecture, typing, data, and UI complexity rules
+description: Frontend architecture, typing, data, and UI rules with stricter state and contract discipline
 alwaysApply: true
 ---
 
 # Frontend Architecture and Styling Principles
 
-Apply these rules strictly for frontend feature work.
+Apply these rules strictly for frontend changes.
 
-## A) Separation of concerns
+## A) Separation of Concerns
 
-- UI (components/pages) must only render and handle user events.
-- Forbidden inside UI: API calls, DTO types, validation logic, business logic, API-to-domain mapping.
-- Business logic must be in feature/model or feature/hooks.
-- API calls must live in `shared/api` (HTTP client) or `feature/api` (feature-specific requests and query hooks).
+- UI components and pages must render data and handle user events only.
+- Forbidden inside UI: direct API calls, DTO types, schema definitions, API-to-domain mapping, scheduling logic, query-key construction logic, and non-trivial business rules.
+- Business logic belongs in feature model/domain/application layers.
+- Data access belongs in feature api/data layers or shared api client utilities.
 
-## B) Types and validation
+## B) State Ownership
 
-- All domain types go into `.types.ts` files inside `feature/domain`.
-- Define Zod schemas once for input and reuse everywhere.
-- API DTO types must not be exposed in UI.
+Distinguish clearly between:
+- server state
+- form/edit state
+- ephemeral UI state
+- derived view state
 
-## C) Data fetching
+Rules:
+- do not mirror server state into local state unless a real editing workflow requires it
+- derived state should be computed, not copied
+- each state concern must have a single source of truth
+- dirty tracking must define its baseline explicitly and must not accidentally update the baseline while editing
 
-- Use React Query (TanStack Query) hooks only in model/hooks layer.
-- No React Query inside UI components directly.
-- UI should consume custom feature hooks.
+## C) Types and Validation
 
-## D) Reusability and DRY
+- Domain types must live in `*.types.ts` or domain-specific type files.
+- Shared cross-file types must not be defined inline inside components.
+- External inputs must be validated or normalized at the boundary.
+- API DTO types must not leak into UI.
+- Mapper functions must handle nullable, optional, and unknown fields explicitly.
 
-- If similar JSX appears multiple times, extract a reusable UI component.
-- If logic repeats, extract a pure helper or custom hook.
-- Do not duplicate query keys, constants, selectors, validation, or types.
+## D) Data Fetching
 
-## E) Testability
+- Use React Query hooks only in feature model/hooks or application hooks.
+- UI should consume custom hooks, not query clients or raw query definitions directly.
+- Query keys must be centralized per feature. Do not define ad-hoc keys inline in multiple files.
+- Prefer invalidation after mutations over manual cache patching unless there is a proven need otherwise.
+- Every mutation must declare which queries become stale.
 
-- Domain/business logic must be pure and testable independent of React.
-- API ↔ domain mapping functions must be pure and testable.
-- Even without tests now, keep structure test-friendly without hacks.
+## E) Layer Purity
 
-## F) UI complexity
+- Domain layer must stay pure: no React imports, no browser APIs, no query libraries.
+- Mapping and calculation logic must be pure and testable.
+- Application hooks may orchestrate async flows, but heavy transformation logic should remain outside React hooks when possible.
+
+## F) Reuse and DRY
+
+- Extract repeated JSX into reusable UI components.
+- Extract repeated logic into pure helpers, selectors, or hooks.
+- Do not duplicate query keys, constants, mappers, schemas, or async-state shapes.
+
+## G) Async and Effects
+
+- No side effects inside render.
+- Effects must have intentional dependencies.
+- Async flows must define loading, success, empty, and error behavior where relevant.
+- Protect against stale async results when concurrent requests or rapid navigation are possible.
+
+## H) UI Complexity
 
 - Keep components small and focused.
-- Avoid nested JSX deeper than ~3 levels; extract subcomponents.
-- Avoid inline complex types; prefer named types from `.types.ts`.
+- Avoid deeply nested JSX and deeply nested conditional flows.
+- Prefer early returns.
+- Replace magic numbers with named constants.
+- Use intent-revealing names.
 
-## G) Local state
+## Complexity Constraints
 
-- Do not store server state in local state unless necessary.
-- Compute derived state instead of storing it.
-
-## Complexity Rules
-
-- No file over ~200 lines.
-- No nested JSX deeper than 3 levels.
+- No file over ~200 lines without a strong reason.
+- No nested JSX deeper than ~3 levels before extraction.
+- No nested ternaries in JSX.
 - No inline style objects in pages.
-- Extract repeated layout blocks.
+- No component should own unrelated responsibilities.
 
 ## Forbidden Patterns
 
-- Direct `fetch`/`axios` calls in UI.
-- Inline Zod schemas in components.
-- DTO types in pages or components.
-- Duplicated types/constants.
-- Nested ternaries in JSX.
+- direct `fetch`/`axios` calls in UI
+- inline schema definitions in components
+- DTO types in pages or components
+- duplicated query keys or cache invalidation paths
+- local state used as a shadow copy of server state without need
+- hidden business rules in event handlers or JSX branches

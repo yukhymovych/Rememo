@@ -1,0 +1,62 @@
+---
+description: Protect persistence shape, API contracts, data transformations, and deletion semantics
+alwaysApply: true
+---
+
+# Data Contract and Migration Safety
+
+Use these rules whenever a change touches persistence, API boundaries, mapping, or deletion flows.
+
+## 1) Persistence Shape Stability
+
+- treat persisted shapes as stable by default
+- `rich_content` shape must not change
+- because there is no versioning layer, backward compatibility is the default requirement for persisted data
+- do not introduce new persisted assumptions without a migration or safe fallback strategy
+
+## 2) External Contract Discipline
+
+In this project, assume API contracts are stable unless the user explicitly requests a contract change.
+
+Rules:
+- do not introduce breaking response/request changes casually
+- if a contract must change, call it out explicitly in architecture overview and file plan
+- list all downstream consumers affected by the contract change
+- boundary parsing or mapping must handle missing and nullable values safely
+
+## 3) Mapping Rules
+
+- map transport data into domain models at the boundary
+- keep mapping logic centralized and pure
+- do not spread raw transport shapes across UI or business logic
+- any contract ambiguity should result in explicit normalization, not silent assumptions
+
+## 4) Delete Lifecycle
+
+- soft delete sends notes to trash
+- trash retention is 10 days unless the user explicitly hard deletes sooner
+- restore and hard-delete paths must preserve predictable behavior
+- do not blur soft delete and hard delete semantics
+
+## 5) Partial Failure Safety
+
+If a change touches multiple writes or coupled operations:
+- define what happens when one step succeeds and another fails
+- prefer transactional or rollback-safe design where applicable
+- do not leave the system in a silently inconsistent state
+- if atomicity is not available, expose or log the failure path clearly
+
+## 6) Import / Export Safety
+
+- import must preserve supported persisted shape expectations
+- export must not mutate source data
+- transformation code must preserve existing content semantics where supported
+- unsupported constructs must degrade predictably, not corrupt content
+
+## 7) Stop Conditions
+
+Stop and explain before continuing if:
+- a change requires altering `rich_content` shape
+- a migration is required but not planned
+- a breaking contract change is implied but not acknowledged
+- deletion behavior becomes ambiguous

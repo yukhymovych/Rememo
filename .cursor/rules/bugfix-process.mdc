@@ -1,0 +1,83 @@
+---
+description: Enforce root-cause-first bug fixing with regression containment and minimal-change discipline
+alwaysApply: true
+---
+
+# Bug Fix Process
+
+Use this process for any bug fix, regression fix, or behavior correction.
+
+## Goal
+
+Fix the real cause with the smallest safe change and avoid creating new bugs.
+
+## Phase 1 - Bug Definition
+
+State clearly:
+- observed behavior
+- expected behavior
+- scope of impact
+- whether this is a regression or an existing bug
+
+## Phase 2 - Reproduction
+
+List:
+- reproduction steps
+- preconditions
+- whether the bug is deterministic or intermittent
+
+If the bug cannot be reproduced reliably, say so and do not pretend certainty.
+
+## Phase 3 - Root Cause Analysis
+
+Provide:
+- root cause hypothesis
+- evidence supporting it
+- alternative hypotheses ruled out
+
+Do not implement a “maybe this works” patch without naming the root cause.
+
+## Phase 4 - Fix Strategy
+
+Explain:
+- why the chosen fix is minimal
+- why it addresses the root cause
+- what nearby behavior must remain unchanged
+- what regressions are possible
+
+## Phase 5 - Implementation Discipline
+
+- avoid broad cleanup during bug fixes
+- preserve public behavior outside the broken scenario
+- do not change data shape, contracts, or unrelated state ownership unless required
+- prefer targeted corrections over architectural rewrites
+
+## Phase 6 - Regression Verification
+
+Verify:
+- the original bug no longer occurs
+- adjacent flows still work
+- loading/error states still behave
+- relevant invalidations still happen
+- no domain invariants were weakened
+
+## Phase 7 - Tests
+
+Add or update tests when the fix touches:
+- pure logic
+- mapping logic
+- state transitions
+- timezone/day eligibility logic
+- session construction or mutation
+- previously broken regression-prone behavior
+
+## Output Format
+
+1. Bug definition
+2. Reproduction
+3. Root cause
+4. Fix strategy
+5. File plan
+6. Implementation
+7. Regression verification
+8. Self-review
