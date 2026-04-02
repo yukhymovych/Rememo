@@ -1,0 +1,84 @@
+---
+description: Require impact analysis, minimal diffs, regression checks, and verification before considering a task done
+alwaysApply: false
+---
+# Change Safety and Regression Rules
+
+Use these rules for all feature work, refactors, and bug fixes.
+
+## 1) Minimal Safe Diff
+
+- one change should have one clear purpose
+- do not mix unrelated cleanup into functional work
+- do not mass-rename, move files, or reorder code without need
+- prefer the narrowest change that solves the problem safely
+- preserve stable interfaces where possible
+
+## 2) Mandatory Impact Analysis
+
+Before implementation, identify:
+- touched modules
+- dependent flows
+- persistence impact
+- cache/query invalidation impact
+- domain invariant risk
+- user-visible behavior risk
+
+## 3) High-Risk Areas in Rememo
+
+Any change touching these areas is medium-to-high risk by default:
+- learning session creation or hydration
+- review eligibility and timezone logic
+- scoring or next-date scheduling calculations
+- note tree movement, restore, or hard delete
+- trash cleanup behavior
+- study question generation or display in learning flows
+- import/export transformations
+- auth-gated bootstrapping and route loading
+
+## 4) Regression Checklist
+
+Check relevant items explicitly:
+- existing pages still render
+- note creation/editing still works
+- tree operations still preserve parent/child structure
+- trash, restore, and hard delete behavior still works
+- due pages still appear correctly
+- learning session still opens and progresses
+- manual review still respects one-review-per-day rule
+- scoped learning still works independently of global learning
+- invalidated queries refresh the right surfaces
+- loading/error/empty states remain coherent
+
+## 5) Definition of Done
+
+A task is not done until all relevant items are addressed:
+- architecture rules respected
+- requested behavior implemented
+- no unrelated behavior changed
+- type errors resolved
+- tests added or updated where required
+- manual verification completed for affected flows
+- known risks documented
+
+## 6) Manual QA Guidance
+
+For affected flows, check:
+- happy path
+- repeated action
+- refresh after action
+- navigation away and back
+- loading state
+- empty state
+- failure state
+- edit then cancel
+- delete then restore where relevant
+- narrow viewport if UI structure changed
+
+## 7) Stop Conditions
+
+Stop and explain before continuing if:
+- the requested change would break an invariant
+- the safest solution requires expanding scope materially
+- persistence shape or contract change becomes necessary
+- a bug cannot be reproduced or the root cause is uncertain

@@ -1,0 +1,90 @@
+---
+description: Protect Rememo domain rules for review eligibility, session behavior, note lifecycle, and scheduling safety
+alwaysApply: true
+---
+
+# Rememo Domain Invariants
+
+These invariants are stricter than normal code-style rules. Do not violate them unless the user explicitly requests a domain behavior change.
+
+## 1) Product Model
+
+Rememo is a note-taking knowledge base with scheduled self-review support.
+It is not an automatic examiner.
+The system must trust the user's self-assessment and must not introduce hidden correctness scoring of the user's knowledge.
+
+## 2) Review Eligibility
+
+- a page may be graded at most once per calendar day
+- “day” is determined by the relevant timezone logic, not naive local comparisons
+- this one-review-per-day rule applies consistently across:
+  - global learning session
+  - scoped learning session
+  - manual page review
+- after a page is graded, including `Again`, it must not become eligible for another same-day grade
+
+Forbidden:
+- second same-day grading through another entry point
+- separate logic paths that disagree about whether a page is reviewable today
+
+## 3) Learning Session Snapshot Rules
+
+- once a learning session starts, its item set is a snapshot
+- the session must not silently expand after start
+- edits to page content or study questions must not arbitrarily inject new items into an already started session
+- if a page inside the session is deleted, it may be removed from the session rather than kept as a broken item
+
+Forbidden:
+- adding newly due items into an already started session
+- session growth caused by unrelated refetches or cache effects
+
+## 4) Queue and Ordering
+
+- queue order is not a critical product invariant
+- `Again` is a grade only; it does not automatically reinsert the same card back into the current session flow
+- do not add hidden queue-manipulation behavior without explicit product approval
+
+## 5) Global vs Scoped Learning
+
+- scoped learning may include pages that are also part of global learning logic
+- there is currently no exclusion rule preventing overlap
+- do not invent hidden de-duplication between global and scoped sessions unless explicitly requested
+
+## 6) Limits
+
+- the current session cap is 15 items
+- treat this as fixed product behavior for now
+- do not make it configurable or dynamic unless explicitly requested
+
+## 7) Note Hierarchy and Lifecycle
+
+- notes are hierarchical and may contain child notes
+- tree operations must preserve valid parent/child relationships
+- drag-and-drop must not orphan nodes or corrupt ordering/placement
+- soft delete sends a note to trash
+- trash items may be restored before permanent deletion
+- permanent deletion happens after 10 days or by explicit user action
+
+Forbidden:
+- hidden hard deletes during soft delete flow
+- restore that loses hierarchy without an explicit fallback strategy
+- background behavior that makes notes disappear earlier than intended
+
+## 8) Rich Content Safety
+
+- `rich_content` shape is currently stable and must not be changed
+- there is no content versioning system in place
+- any feature touching content parsing, import, export, serialization, or editor transforms must preserve the existing persisted shape
+
+## 9) Study Questions
+
+- study questions can be user-created or AI-generated
+- learning sessions display those questions/answers as self-review material
+- question generation must not overwrite or silently discard existing user content unless explicitly requested
+
+## 10) Architecture Priority for Domain Changes
+
+If implementation convenience conflicts with these invariants:
+- preserve the invariant
+- stop and explain the conflict
+- do not “simplify” domain behavior by weakening product rules
