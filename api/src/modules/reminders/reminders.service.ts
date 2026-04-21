@@ -29,6 +29,30 @@ const MAX_JOB_BATCHES_PER_RUN = Math.min(
   Math.max(1, Number(process.env.REMINDER_JOB_MAX_BATCHES_PER_RUN ?? '50'))
 );
 
+type ReminderJobLogLevel = 'info' | 'warn' | 'error';
+
+function logReminderJobEvent(
+  level: ReminderJobLogLevel,
+  event: string,
+  payload: Record<string, unknown>
+): void {
+  const line = JSON.stringify({
+    level,
+    component: 'reminders.job',
+    event,
+    ...payload,
+  });
+  if (level === 'error') {
+    console.error('[reminders][job]', line);
+    return;
+  }
+  if (level === 'warn') {
+    console.warn('[reminders][job]', line);
+    return;
+  }
+  console.log('[reminders][job]', line);
+}
+
 async function recomputeAndPersistNextReminder(userId: string): Promise<void> {
   const row = await remindersSQL.getUserSchedulingRow(userId);
   if (!row) return;
@@ -58,12 +82,19 @@ async function recomputeAndPersistNextReminder(userId: string): Promise<void> {
  * Limitation: Web Push is **at-least-once**; duplicate delivery to the device without DB update cannot be
  * distinguished from zero delivery without provider ack persistence (not in scope).
  */
-async function recoverStaleReminderScheduleForUser(userId: string): Promise<void> {
+async function recoverStaleReminderScheduleForUser(
+  userId: string,
+  runId: string
+): Promise<void> {
   const row = await remindersSQL.getUserSchedulingRow(userId);
-  if (!row) return;
+  if (!row) {
+    logReminderJobEvent('warn', 'stale_recovery_user_not_found', { runId, userId });
+    return;
+  }
 
   if (!row.daily_reminders_enabled) {
     await remindersSQL.setNextReminderAtUtc(userId, null);
+    logReminderJobEvent('info', 'stale_recovery_disabled_cleared', { runId, userId });
     return;
   }
 
@@ -88,6 +119,12 @@ async function recoverStaleReminderScheduleForUser(userId: string): Promise<void
       userId,
       nextReminderAtUtc: nextUtc,
     });
+    logReminderJobEvent('info', 'stale_recovery_finalize_schedule_only', {
+      runId,
+      userId,
+      mode: 'single_per_day',
+      nextReminderAtUtc: nextUtc.toISOString(),
+    });
     return;
   }
 
@@ -96,6 +133,12 @@ async function recoverStaleReminderScheduleForUser(userId: string): Promise<void
     await remindersSQL.finalizeReminderScheduleOnly({
       userId,
       nextReminderAtUtc: nextUtc,
+    });
+    logReminderJobEvent('info', 'stale_recovery_finalize_schedule_only', {
+      runId,
+      userId,
+      mode: 'multiple_per_day',
+      nextReminderAtUtc: nextUtc.toISOString(),
     });
     return;
   }
@@ -110,6 +153,11 @@ async function recoverStaleReminderScheduleForUser(userId: string): Promise<void
   });
 
   await remindersSQL.setNextReminderAtUtc(userId, nextUtc);
+  logReminderJobEvent('info', 'stale_recovery_recomputed_next', {
+    runId,
+    userId,
+    nextReminderAtUtc: nextUtc?.toISOString?.() ?? null,
+  });
 }
 
 export async function savePushSubscription(input: {
@@ -247,6 +295,10 @@ function logReminderJobRiskSignals(stats: DueRemindersJobStats): void {
  * sends after crashes by recording `last_daily_reminder_sent_*` before calling the push provider.
  */
 export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
+  const runStartedAt = new Date();
+  const runId = `${runStartedAt.getTime()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
   const now = new Date();
   const repeatGapMs = defaultReminderRepeatGapMs();
   const stats: DueRemindersJobStats = {
@@ -268,21 +320,46 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
     subscriptionsDeactivated: 0,
   };
 
-  const staleBefore = new Date(Date.now() - defaultReminderClaimStaleAfterMs());
-  const staleIds = await remindersSQL.listStaleReminderClaimUserIds(staleBefore);
-  stats.staleClaimsRecovered = staleIds.length;
-  for (const uid of staleIds) {
-    await recoverStaleReminderScheduleForUser(uid);
-  }
+  logReminderJobEvent('info', 'run_started', {
+    runId,
+    startedAt: runStartedAt.toISOString(),
+    allowMultipleRemindersPerDay: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
+    jobBatchLimit: JOB_BATCH_LIMIT,
+    maxJobBatchesPerRun: MAX_JOB_BATCHES_PER_RUN,
+  });
 
-  while (stats.jobBatchesRun < MAX_JOB_BATCHES_PER_RUN) {
-    const dueUsers = await remindersSQL.listDueReminderCandidates(JOB_BATCH_LIMIT);
-    if (dueUsers.length === 0) {
-      break;
+  try {
+    const staleBefore = new Date(Date.now() - defaultReminderClaimStaleAfterMs());
+    const staleIds = await remindersSQL.listStaleReminderClaimUserIds(staleBefore);
+    stats.staleClaimsRecovered = staleIds.length;
+    if (staleIds.length > 0) {
+      logReminderJobEvent('warn', 'stale_claims_detected', {
+        runId,
+        staleClaimsRecovered: staleIds.length,
+        staleBeforeUtc: staleBefore.toISOString(),
+      });
+    }
+    for (const uid of staleIds) {
+      await recoverStaleReminderScheduleForUser(uid, runId);
     }
 
-    stats.jobBatchesRun += 1;
-    stats.candidatesReturned += dueUsers.length;
+    while (stats.jobBatchesRun < MAX_JOB_BATCHES_PER_RUN) {
+      const dueUsers = await remindersSQL.listDueReminderCandidates(JOB_BATCH_LIMIT);
+      if (dueUsers.length === 0) {
+        logReminderJobEvent('info', 'batch_scan_no_due_users', {
+          runId,
+          batchNumber: stats.jobBatchesRun + 1,
+        });
+        break;
+      }
+
+      stats.jobBatchesRun += 1;
+      stats.candidatesReturned += dueUsers.length;
+      logReminderJobEvent('info', 'batch_loaded_due_users', {
+        runId,
+        batchNumber: stats.jobBatchesRun,
+        dueUsersInBatch: dueUsers.length,
+      });
 
     const userIds = dueUsers.map((u) => u.id);
     const [allSubs, dueCounts] = await Promise.all([
@@ -307,30 +384,43 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
 
     const claimedWork: ClaimedWork[] = [];
 
-    for (const user of dueUsers) {
+      for (const user of dueUsers) {
       const timezone = normalizeTimezone(user.timezone);
       const todayKey = getDayKeyForDate(now, timezone);
 
-      if (
-        !ALLOW_MULTIPLE_REMINDERS_PER_DAY &&
-        user.last_daily_reminder_sent_day_key === todayKey
-      ) {
-        await recomputeAndPersistNextReminder(user.id);
-        stats.healedAlreadySentToday += 1;
-        continue;
-      }
+        if (
+          !ALLOW_MULTIPLE_REMINDERS_PER_DAY &&
+          user.last_daily_reminder_sent_day_key === todayKey
+        ) {
+          await recomputeAndPersistNextReminder(user.id);
+          stats.healedAlreadySentToday += 1;
+          logReminderJobEvent('info', 'user_skipped_already_sent_healed', {
+            runId,
+            userId: user.id,
+            todayKey,
+          });
+          continue;
+        }
 
       const subs = subsByUser.get(user.id) ?? [];
-      if (subs.length === 0) {
-        stats.skippedNoSubscriptions += 1;
-        continue;
-      }
+        if (subs.length === 0) {
+          stats.skippedNoSubscriptions += 1;
+          logReminderJobEvent('info', 'user_skipped_no_subscriptions', {
+            runId,
+            userId: user.id,
+          });
+          continue;
+        }
 
       const dueCount = dueCounts.get(user.id) ?? 0;
-      if (dueCount <= 0) {
-        stats.skippedNoDueItems += 1;
-        continue;
-      }
+        if (dueCount <= 0) {
+          stats.skippedNoDueItems += 1;
+          logReminderJobEvent('info', 'user_skipped_no_due_items', {
+            runId,
+            userId: user.id,
+          });
+          continue;
+        }
 
       stats.eligibleForAttempt += 1;
 
@@ -340,36 +430,58 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
         todayDayKey: todayKey,
       });
 
-      if (claimResult.status !== 'claimed') {
-        if (claimResult.reason === 'already_sent_today') {
-          await recomputeAndPersistNextReminder(user.id);
-          stats.skippedAlreadySentAtClaim += 1;
-        } else {
-          stats.claimLostToConcurrentRun += 1;
+        if (claimResult.status !== 'claimed') {
+          if (claimResult.reason === 'already_sent_today') {
+            await recomputeAndPersistNextReminder(user.id);
+            stats.skippedAlreadySentAtClaim += 1;
+            logReminderJobEvent('info', 'claim_rejected_already_sent_today', {
+              runId,
+              userId: user.id,
+              todayKey,
+            });
+          } else {
+            stats.claimLostToConcurrentRun += 1;
+            logReminderJobEvent('warn', 'claim_lost_to_concurrent_run', {
+              runId,
+              userId: user.id,
+              dueInstant: dueInstant.toISOString(),
+            });
+          }
+          continue;
         }
-        continue;
+
+        claimedWork.push({ user, dueInstant, subs, dueCount });
       }
 
-      claimedWork.push({ user, dueInstant, subs, dueCount });
-    }
+      const claimedIds = claimedWork.map((w) => w.user.id);
+      const lastSentMap =
+        await remindersSQL.getLastReminderSentDayKeysForUserIds(claimedIds);
+      if (claimedWork.length > 0) {
+        logReminderJobEvent('info', 'batch_claimed_users_ready', {
+          runId,
+          batchNumber: stats.jobBatchesRun,
+          claimedUsers: claimedWork.length,
+        });
+      }
 
-    const claimedIds = claimedWork.map((w) => w.user.id);
-    const lastSentMap =
-      await remindersSQL.getLastReminderSentDayKeysForUserIds(claimedIds);
-
-    for (const { user, dueInstant, subs, dueCount } of claimedWork) {
+      for (const { user, dueInstant, subs, dueCount } of claimedWork) {
       const timezone = normalizeTimezone(user.timezone);
       const todayKey = getDayKeyForDate(now, timezone);
 
-      if (!ALLOW_MULTIPLE_REMINDERS_PER_DAY) {
-        const ls = lastSentMap.get(user.id);
-        if (ls === todayKey) {
-          await remindersSQL.revertReminderClaim(user.id, dueInstant);
-          await recomputeAndPersistNextReminder(user.id);
-          stats.skippedDuplicateSendGuard += 1;
-          continue;
+        if (!ALLOW_MULTIPLE_REMINDERS_PER_DAY) {
+          const ls = lastSentMap.get(user.id);
+          if (ls === todayKey) {
+            await remindersSQL.revertReminderClaim(user.id, dueInstant);
+            await recomputeAndPersistNextReminder(user.id);
+            stats.skippedDuplicateSendGuard += 1;
+            logReminderJobEvent('warn', 'duplicate_send_guard_triggered', {
+              runId,
+              userId: user.id,
+              todayKey,
+            });
+            continue;
+          }
         }
-      }
 
       const preDispatchDayKey = user.last_daily_reminder_sent_day_key;
       const preDispatchSentAt = user.last_daily_reminder_sent_at;
@@ -382,74 +494,129 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
         allowMultipleRemindersPerDay: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
       });
 
-      if (!marked) {
-        await remindersSQL.revertReminderClaim(user.id, dueInstant);
-        stats.optimisticMarkFailed += 1;
-        continue;
-      }
-
-      const locale = normalizePushLocale(user.ui_language);
-      let userHadSuccessfulPush = false;
-
-      try {
-        for (const subscription of subs) {
-          stats.pushesAttempted += 1;
-          const result = await sendDailyReminderPush(subscription, dueCount, locale);
-          if (result.success) {
-            stats.pushesSucceeded += 1;
-            userHadSuccessfulPush = true;
-          } else {
-            stats.pushesFailed += 1;
-            if (result.shouldDeactivate) {
-              await remindersSQL.deactivatePushSubscriptionById(subscription.id);
-              stats.subscriptionsDeactivated += 1;
-            }
-          }
+        if (!marked) {
+          await remindersSQL.revertReminderClaim(user.id, dueInstant);
+          stats.optimisticMarkFailed += 1;
+          logReminderJobEvent('warn', 'optimistic_mark_failed', {
+            runId,
+            userId: user.id,
+            dueInstant: dueInstant.toISOString(),
+          });
+          continue;
         }
 
-        if (userHadSuccessfulPush) {
-          const sentDayKey = getDayKeyForDate(dispatchStartedAt, timezone);
-          const nextUtc = computeNextReminderUtcAfterSuccessfulSend({
-            sentAt: dispatchStartedAt,
-            timezone,
-            reminderTimeLocal: user.daily_reminder_time_local,
-            allowMultipleRemindersPerDay: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
-            repeatGapMs,
-          });
-          await remindersSQL.finalizeReminderAfterSuccessfulSend({
-            userId: user.id,
-            nextReminderAtUtc: nextUtc,
-            sentDayKey,
-            sentAt: dispatchStartedAt,
-          });
-        } else {
+        logReminderJobEvent('info', 'dispatch_started', {
+          runId,
+          userId: user.id,
+          dueInstant: dueInstant.toISOString(),
+          dueCount,
+          subscriptionCount: subs.length,
+        });
+
+        const locale = normalizePushLocale(user.ui_language);
+        let userHadSuccessfulPush = false;
+
+        try {
+          for (const subscription of subs) {
+            stats.pushesAttempted += 1;
+            const result = await sendDailyReminderPush(subscription, dueCount, locale);
+            if (result.success) {
+              stats.pushesSucceeded += 1;
+              userHadSuccessfulPush = true;
+            } else {
+              stats.pushesFailed += 1;
+              if (result.shouldDeactivate) {
+                await remindersSQL.deactivatePushSubscriptionById(subscription.id);
+                stats.subscriptionsDeactivated += 1;
+                logReminderJobEvent('warn', 'subscription_deactivated_after_push_error', {
+                  runId,
+                  userId: user.id,
+                  subscriptionId: subscription.id,
+                });
+              }
+            }
+          }
+
+          if (userHadSuccessfulPush) {
+            const sentDayKey = getDayKeyForDate(dispatchStartedAt, timezone);
+            const nextUtc = computeNextReminderUtcAfterSuccessfulSend({
+              sentAt: dispatchStartedAt,
+              timezone,
+              reminderTimeLocal: user.daily_reminder_time_local,
+              allowMultipleRemindersPerDay: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
+              repeatGapMs,
+            });
+            await remindersSQL.finalizeReminderAfterSuccessfulSend({
+              userId: user.id,
+              nextReminderAtUtc: nextUtc,
+              sentDayKey,
+              sentAt: dispatchStartedAt,
+            });
+            logReminderJobEvent('info', 'dispatch_finalized_after_success', {
+              runId,
+              userId: user.id,
+              sentDayKey,
+              nextReminderAtUtc: nextUtc.toISOString(),
+            });
+          } else {
+            await remindersSQL.revertOptimisticReminderDispatch({
+              userId: user.id,
+              dueInstant,
+              restoreDayKey: preDispatchDayKey,
+              restoreSentAt: preDispatchSentAt,
+            });
+            logReminderJobEvent('warn', 'dispatch_reverted_no_successful_push', {
+              runId,
+              userId: user.id,
+              dueInstant: dueInstant.toISOString(),
+            });
+          }
+        } catch (error) {
           await remindersSQL.revertOptimisticReminderDispatch({
             userId: user.id,
             dueInstant,
             restoreDayKey: preDispatchDayKey,
             restoreSentAt: preDispatchSentAt,
           });
+          logReminderJobEvent('error', 'dispatch_reverted_on_exception', {
+            runId,
+            userId: user.id,
+            dueInstant: dueInstant.toISOString(),
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
         }
-      } catch (error) {
-        await remindersSQL.revertOptimisticReminderDispatch({
-          userId: user.id,
-          dueInstant,
-          restoreDayKey: preDispatchDayKey,
-          restoreSentAt: preDispatchSentAt,
-        });
-        throw error;
+      }
+
+      if (stats.jobBatchesRun >= MAX_JOB_BATCHES_PER_RUN) {
+        const peek = await remindersSQL.listDueReminderCandidates(1);
+        stats.batchLimitReached = peek.length > 0;
+        if (stats.batchLimitReached) {
+          logReminderJobEvent('warn', 'max_batches_reached_with_remaining_due_users', {
+            runId,
+            maxJobBatchesPerRun: MAX_JOB_BATCHES_PER_RUN,
+          });
+        }
+        break;
       }
     }
 
-    if (stats.jobBatchesRun >= MAX_JOB_BATCHES_PER_RUN) {
-      const peek = await remindersSQL.listDueReminderCandidates(1);
-      stats.batchLimitReached = peek.length > 0;
-      break;
-    }
+    logReminderJobRiskSignals(stats);
+    logReminderJobEvent('info', 'run_completed', {
+      runId,
+      elapsedMs: Date.now() - runStartedAt.getTime(),
+      ...stats,
+    });
+    return stats;
+  } catch (error) {
+    logReminderJobEvent('error', 'run_failed', {
+      runId,
+      elapsedMs: Date.now() - runStartedAt.getTime(),
+      ...stats,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
-
-  logReminderJobRiskSignals(stats);
-  return stats;
 }
 
 export async function scheduleDebugPushForUser(
