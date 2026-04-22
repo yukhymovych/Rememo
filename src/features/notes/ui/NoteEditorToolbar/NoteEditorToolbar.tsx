@@ -76,6 +76,7 @@ export function NoteEditorToolbar({
   activeId,
   notes,
   currentTitle,
+  hidePageActions = false,
   saveStatus,
   isFavorite,
   onAddToFavorites,
@@ -120,33 +121,35 @@ export function NoteEditorToolbar({
             {saveStatusLabel[saveStatus]}
             {importExport.pendingLabel ? ` ${importExport.pendingLabel}` : null}
           </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                icon
-                className="menu-trigger-btn"
-                title={t('editor.pageOptions')}
-                style={{ opacity: 0.7 }}
-              >
-                <MoreVertical className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <NotePageActionsMenu
-              noteId={activeId}
-              noteTitle={currentTitle}
-              isFavorite={isFavorite}
-              hasChildren={hasChildren}
-              hasDescendantsInGlobal={hasDescendantsInGlobal}
-              onAddToFavorites={onAddToFavorites}
-              onRemoveFromFavorites={onRemoveFromFavorites}
-              onCreateChild={onCreateChild}
-              onDelete={onDelete}
-              isDeleting={isDeleting}
-              importExport={importExport}
-              pageBackup={pageBackup}
-            />
-          </DropdownMenu>
+          {!hidePageActions && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  icon
+                  className="menu-trigger-btn"
+                  title={t('editor.pageOptions')}
+                  style={{ opacity: 0.7 }}
+                >
+                  <MoreVertical className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <NotePageActionsMenu
+                noteId={activeId}
+                noteTitle={currentTitle}
+                isFavorite={isFavorite}
+                hasChildren={hasChildren}
+                hasDescendantsInGlobal={hasDescendantsInGlobal}
+                onAddToFavorites={onAddToFavorites}
+                onRemoveFromFavorites={onRemoveFromFavorites}
+                onCreateChild={onCreateChild}
+                onDelete={onDelete}
+                isDeleting={isDeleting}
+                importExport={importExport}
+                pageBackup={pageBackup}
+              />
+            </DropdownMenu>
+          )}
         </div>
       </div>
       {showDueAt && (

@@ -54,21 +54,20 @@ export function NoteEditorPage() {
 
   return (
     <div className="note-editor-page">
-      {!isReadOnly && (
-        <NoteEditorToolbar
-          activeId={id}
-          notes={notes}
-          currentTitle={chromeTitle}
-          saveStatus={saveStatus}
-          isFavorite={isFavorite}
-          onAddToFavorites={handleAddToFavorites}
-          onRemoveFromFavorites={handleRemoveFromFavorites}
-          onCreateChild={handleCreateChild}
-          onDelete={handleDelete}
-          isDeleting={isDeleting}
-          importExport={importExport}
-        />
-      )}
+      <NoteEditorToolbar
+        activeId={id}
+        notes={notes}
+        currentTitle={chromeTitle}
+        hidePageActions={isReadOnly}
+        saveStatus={saveStatus}
+        isFavorite={isFavorite}
+        onAddToFavorites={handleAddToFavorites}
+        onRemoveFromFavorites={handleRemoveFromFavorites}
+        onCreateChild={handleCreateChild}
+        onDelete={handleDelete}
+        isDeleting={isDeleting}
+        importExport={importExport}
+      />
       <NoteTitleInput
         value={title}
         onChange={handleTitleChange}
