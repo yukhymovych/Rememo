@@ -6,6 +6,8 @@ export interface NoteEditorToolbarProps {
   activeId: string;
   notes: NoteListItem[] | undefined;
   currentTitle: string;
+  /** When true, breadcrumbs and review line stay visible; the ⋮ page menu is hidden. */
+  hidePageActions?: boolean;
   saveStatus: SaveStatus;
   isFavorite: boolean;
   onAddToFavorites?: (noteId: string) => void;

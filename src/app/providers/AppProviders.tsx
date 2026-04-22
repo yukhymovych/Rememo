@@ -7,12 +7,19 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { Toaster } from '../../shared/ui/Toaster';
 import { TooltipProvider } from '../../shared/ui';
 import { AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_AUDIENCE } from '../../shared/config/env';
+import { AppModeProvider } from '@/features/offline/model/AppModeProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      // Default is `online`, which skips running `queryFn` while offline. Our
+      // read facades use Dexie when offline and must still execute.
+      networkMode: 'always',
+    },
+    mutations: {
+      networkMode: 'always',
     },
   },
 });
@@ -39,8 +46,10 @@ export function AppProviders({ children }: AppProvidersProps) {
           <MantineProvider>
             <TooltipProvider>
               <AuthProvider>
-                {children}
-                <Toaster />
+                <AppModeProvider>
+                  {children}
+                  <Toaster />
+                </AppModeProvider>
               </AuthProvider>
             </TooltipProvider>
           </MantineProvider>

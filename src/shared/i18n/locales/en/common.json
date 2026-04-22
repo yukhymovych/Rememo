@@ -40,5 +40,25 @@
   },
   "errors": {
     "withMessage": "Error: {{message}}"
+  },
+  "offline": {
+    "banner": {
+      "title": "Offline mode — read-only.",
+      "lastSynced": "Last synced: {{time}}",
+      "unknown": "unknown",
+      "accessOffHint": "Offline access is turned off in Settings; you're viewing data already stored on this device."
+    },
+    "unavailable": {
+      "title": "You're offline",
+      "body": "No cached data is available for this device. Connect to the internet to sign in and load your notes."
+    },
+    "accessDisabled": {
+      "title": "Offline access is turned off",
+      "body": "In Settings, offline access is disabled and there is no cached copy of your notes on this device. Connect to the internet to sign in. To use notes offline again, turn offline access on in Settings and wait for a sync while you're online."
+    },
+    "learningUnavailable": {
+      "title": "Learning is unavailable offline",
+      "body": "Study sessions, grading, and AI features require an internet connection."
+    }
   }
 }
