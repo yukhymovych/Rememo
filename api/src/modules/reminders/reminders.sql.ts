@@ -169,6 +169,10 @@ export type ClaimReminderDueResult =
  * Atomically claims a due row. When `allowMultipleRemindersPerDay` is false, the UPDATE also requires
  * `last_daily_reminder_sent_day_key` to differ from today's local day key so we never claim a row that
  * has already recorded a send for today (duplicate-send barrier at DB level).
+ *
+ * When `allowMultipleRemindersPerDay` is true (debug-style candidate bypass), selection may include users
+ * whose `next_reminder_at_utc` is still in the future; the claim must not require `next_reminder_at_utc <= NOW()`
+ * in that mode, or every claim fails while the same rows stay at the head of the queue.
  */
 export async function claimReminderDueInstant(
   userId: string,
@@ -186,7 +190,7 @@ export async function claimReminderDueInstant(
        AND daily_reminders_enabled = true
        AND reminder_claimed_at IS NULL
        AND next_reminder_at_utc IS NOT NULL
-       AND next_reminder_at_utc <= NOW()
+       AND ($3::boolean = true OR next_reminder_at_utc <= NOW())
        AND next_reminder_at_utc <> 'infinity'::timestamptz
        AND next_reminder_at_utc = $2::timestamptz
        AND (
