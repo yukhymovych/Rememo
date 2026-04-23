@@ -16,6 +16,20 @@ import {
 } from './reminderSchedule.js';
 import { logReminderJobEvent, logReminderJobRiskSummary } from './reminderJobLog.js';
 
+type ReminderJobUserLogLevel = 'info' | 'warn' | 'error';
+
+function logReminderUserEventOnce(
+  seenKeys: Set<string>,
+  dedupeKey: string,
+  level: ReminderJobUserLogLevel,
+  event: string,
+  payload: Record<string, unknown>
+): void {
+  if (seenKeys.has(dedupeKey)) return;
+  seenKeys.add(dedupeKey);
+  logReminderJobEvent(level, event, payload);
+}
+
 const ALLOW_MULTIPLE_REMINDERS_PER_DAY =
   process.env.REMINDER_ALLOW_MULTIPLE_PER_DAY?.toLowerCase() === 'true';
 
@@ -302,6 +316,9 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
   });
 
   try {
+    /** One log line per (event,user) per run — avoids console spam when the same users repeat across batches. */
+    const perRunUserDiagLogged = new Set<string>();
+
     const staleBefore = new Date(Date.now() - defaultReminderClaimStaleAfterMs());
     const staleIds = await remindersSQL.listStaleReminderClaimUserIds(staleBefore);
     stats.staleClaimsRecovered = staleIds.length;
@@ -330,11 +347,6 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
 
       stats.jobBatchesRun += 1;
       stats.candidatesReturned += dueUsers.length;
-      logReminderJobEvent('info', 'batch_loaded_due_users', {
-        runId,
-        batchNumber: stats.jobBatchesRun,
-        dueUsersInBatch: dueUsers.length,
-      });
 
     const userIds = dueUsers.map((u) => u.id);
     const [allSubs, dueCounts] = await Promise.all([
@@ -369,51 +381,69 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
         ) {
           await recomputeAndPersistNextReminder(user.id);
           stats.healedAlreadySentToday += 1;
-          logReminderJobEvent('info', 'user_skipped_already_sent_healed', {
-            runId,
-            userId: user.id,
-            skipReason: 'SINGLE_DAY_ALREADY_SENT',
-            detail:
-              'REMINDER_ALLOW_MULTIPLE_PER_DAY is false and last_daily_reminder_sent_day_key matches today in user TZ; recomputed next_reminder_at_utc.',
-            todayKey,
-          });
+          logReminderUserEventOnce(
+            perRunUserDiagLogged,
+            `user_skipped_already_sent_healed:${user.id}`,
+            'info',
+            'user_skipped_already_sent_healed',
+            {
+              runId,
+              userId: user.id,
+              skipReason: 'SINGLE_DAY_ALREADY_SENT',
+              detail:
+                'REMINDER_ALLOW_MULTIPLE_PER_DAY is false and last_daily_reminder_sent_day_key matches today in user TZ; recomputed next_reminder_at_utc.',
+              todayKey,
+            }
+          );
           continue;
         }
 
       const subs = subsByUser.get(user.id) ?? [];
         if (subs.length === 0) {
           stats.skippedNoSubscriptions += 1;
-          logReminderJobEvent('info', 'user_skipped_no_subscriptions', {
-            runId,
-            userId: user.id,
-            skipReason: 'NO_ACTIVE_PUSH_SUBSCRIPTION',
-            detail:
-              'No push_subscriptions rows with is_active=true for this user; enable reminders in the app to register an endpoint.',
-            dueCountSnapshot: dueCounts.get(user.id) ?? 0,
-            nextReminderAtUtc: user.next_reminder_at_utc.toISOString(),
-            reminderTimeLocal: user.daily_reminder_time_local,
-            timezone: user.timezone,
-          });
+          logReminderUserEventOnce(
+            perRunUserDiagLogged,
+            `user_skipped_no_subscriptions:${user.id}`,
+            'info',
+            'user_skipped_no_subscriptions',
+            {
+              runId,
+              userId: user.id,
+              skipReason: 'NO_ACTIVE_PUSH_SUBSCRIPTION',
+              detail:
+                'No push_subscriptions rows with is_active=true for this user; enable reminders in the app to register an endpoint.',
+              dueCountSnapshot: dueCounts.get(user.id) ?? 0,
+              nextReminderAtUtc: user.next_reminder_at_utc.toISOString(),
+              reminderTimeLocal: user.daily_reminder_time_local,
+              timezone: user.timezone,
+            }
+          );
           continue;
         }
 
       const dueCount = dueCounts.get(user.id) ?? 0;
         if (dueCount <= 0) {
           stats.skippedNoDueItems += 1;
-          logReminderJobEvent('info', 'user_skipped_no_due_items', {
-            runId,
-            userId: user.id,
-            skipReason: 'ZERO_DUE_STUDY_ITEMS',
-            detail:
-              'learningSQL.getDueStudyItemsCountsByUserIds returned 0 (study_items with is_active, due_at<=NOW(), note not trashed). Then recomputes next_reminder_at_utc so this user does not stay head-of-queue for every batch.',
-            dueCount,
-            activeSubscriptions: subs.length,
-            nextReminderAtUtc: user.next_reminder_at_utc.toISOString(),
-            reminderTimeLocal: user.daily_reminder_time_local,
-            timezone: user.timezone,
-            lastDailyReminderSentDayKey: user.last_daily_reminder_sent_day_key,
-            lastDailyReminderSentAt: user.last_daily_reminder_sent_at?.toISOString?.() ?? null,
-          });
+          logReminderUserEventOnce(
+            perRunUserDiagLogged,
+            `user_skipped_no_due_items:${user.id}`,
+            'info',
+            'user_skipped_no_due_items',
+            {
+              runId,
+              userId: user.id,
+              skipReason: 'ZERO_DUE_STUDY_ITEMS',
+              detail:
+                'learningSQL.getDueStudyItemsCountsByUserIds returned 0 (study_items with is_active, due_at<=NOW(), note not trashed). Then recomputes next_reminder_at_utc so this user does not stay head-of-queue for every batch.',
+              dueCount,
+              activeSubscriptions: subs.length,
+              nextReminderAtUtc: user.next_reminder_at_utc.toISOString(),
+              reminderTimeLocal: user.daily_reminder_time_local,
+              timezone: user.timezone,
+              lastDailyReminderSentDayKey: user.last_daily_reminder_sent_day_key,
+              lastDailyReminderSentAt: user.last_daily_reminder_sent_at?.toISOString?.() ?? null,
+            }
+          );
           await recomputeAndPersistNextReminder(user.id);
           continue;
         }
@@ -430,24 +460,36 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
           if (claimResult.reason === 'already_sent_today') {
             await recomputeAndPersistNextReminder(user.id);
             stats.skippedAlreadySentAtClaim += 1;
-            logReminderJobEvent('info', 'claim_rejected_already_sent_today', {
-              runId,
-              userId: user.id,
-              skipReason: 'CLAIM_DB_ALREADY_SENT_TODAY',
-              detail:
-                'claimReminderDueInstant rejected: DB says daily reminder already recorded for this local day.',
-              todayKey,
-            });
+            logReminderUserEventOnce(
+              perRunUserDiagLogged,
+              `claim_rejected_already_sent_today:${user.id}`,
+              'info',
+              'claim_rejected_already_sent_today',
+              {
+                runId,
+                userId: user.id,
+                skipReason: 'CLAIM_DB_ALREADY_SENT_TODAY',
+                detail:
+                  'claimReminderDueInstant rejected: DB says daily reminder already recorded for this local day.',
+                todayKey,
+              }
+            );
           } else {
             stats.claimLostToConcurrentRun += 1;
-            logReminderJobEvent('warn', 'claim_lost_to_concurrent_run', {
-              runId,
-              userId: user.id,
-              skipReason: 'CLAIM_RACE_OR_STATE',
-              detail:
-                'Atomic claim did not win (another worker or state changed); no push this run for this user.',
-              dueInstant: dueInstant.toISOString(),
-            });
+            logReminderUserEventOnce(
+              perRunUserDiagLogged,
+              `claim_lost_to_concurrent_run:${user.id}:${dueInstant.toISOString()}`,
+              'warn',
+              'claim_lost_to_concurrent_run',
+              {
+                runId,
+                userId: user.id,
+                skipReason: 'CLAIM_RACE_OR_STATE',
+                detail:
+                  'Atomic claim did not win (another worker or state changed); no push this run for this user.',
+                dueInstant: dueInstant.toISOString(),
+              }
+            );
           }
           continue;
         }
@@ -458,14 +500,6 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
       const claimedIds = claimedWork.map((w) => w.user.id);
       const lastSentMap =
         await remindersSQL.getLastReminderSentDayKeysForUserIds(claimedIds);
-      if (claimedWork.length > 0) {
-        logReminderJobEvent('info', 'batch_claimed_users_ready', {
-          runId,
-          batchNumber: stats.jobBatchesRun,
-          claimedUsers: claimedWork.length,
-        });
-      }
-
       for (const { user, dueInstant, subs, dueCount } of claimedWork) {
       const timezone = normalizeTimezone(user.timezone);
       const todayKey = getDayKeyForDate(now, timezone);
@@ -476,14 +510,20 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
             await remindersSQL.revertReminderClaim(user.id, dueInstant);
             await recomputeAndPersistNextReminder(user.id);
             stats.skippedDuplicateSendGuard += 1;
-            logReminderJobEvent('warn', 'duplicate_send_guard_triggered', {
-              runId,
-              userId: user.id,
-              skipReason: 'DUPLICATE_SEND_GUARD',
-              detail:
-                'After claim, last_sent map shows today already recorded; reverted claim and skipped push.',
-              todayKey,
-            });
+            logReminderUserEventOnce(
+              perRunUserDiagLogged,
+              `duplicate_send_guard_triggered:${user.id}`,
+              'warn',
+              'duplicate_send_guard_triggered',
+              {
+                runId,
+                userId: user.id,
+                skipReason: 'DUPLICATE_SEND_GUARD',
+                detail:
+                  'After claim, last_sent map shows today already recorded; reverted claim and skipped push.',
+                todayKey,
+              }
+            );
             continue;
           }
         }
@@ -502,14 +542,20 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
         if (!marked) {
           await remindersSQL.revertReminderClaim(user.id, dueInstant);
           stats.optimisticMarkFailed += 1;
-          logReminderJobEvent('warn', 'optimistic_mark_failed', {
-            runId,
-            userId: user.id,
-            skipReason: 'OPTIMISTIC_PRE_PUSH_MARK_FAILED',
-            detail:
-              'Could not mark reminder sent before Web Push; claim reverted. Often concurrent scheduling.',
-            dueInstant: dueInstant.toISOString(),
-          });
+          logReminderUserEventOnce(
+            perRunUserDiagLogged,
+            `optimistic_mark_failed:${user.id}`,
+            'warn',
+            'optimistic_mark_failed',
+            {
+              runId,
+              userId: user.id,
+              skipReason: 'OPTIMISTIC_PRE_PUSH_MARK_FAILED',
+              detail:
+                'Could not mark reminder sent before Web Push; claim reverted. Often concurrent scheduling.',
+              dueInstant: dueInstant.toISOString(),
+            }
+          );
           continue;
         }
 
@@ -536,15 +582,21 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
               if (result.shouldDeactivate) {
                 await remindersSQL.deactivatePushSubscriptionById(subscription.id);
                 stats.subscriptionsDeactivated += 1;
-                logReminderJobEvent('warn', 'subscription_deactivated_after_push_error', {
-                  runId,
-                  userId: user.id,
-                  subscriptionId: subscription.id,
-                  skipReason: 'PUSH_ENDPOINT_INVALID_OR_EXPIRED',
-                  detail:
-                    'Web Push failed with HTTP 404 or 410; row marked is_active=false. User should re-enable daily reminders in the app.',
-                  pushError: result.error,
-                });
+                logReminderUserEventOnce(
+                  perRunUserDiagLogged,
+                  `subscription_deactivated_after_push_error:${subscription.id}`,
+                  'warn',
+                  'subscription_deactivated_after_push_error',
+                  {
+                    runId,
+                    userId: user.id,
+                    subscriptionId: subscription.id,
+                    skipReason: 'PUSH_ENDPOINT_INVALID_OR_EXPIRED',
+                    detail:
+                      'Web Push failed with HTTP 404 or 410; row marked is_active=false. User should re-enable daily reminders in the app.',
+                    pushError: result.error,
+                  }
+                );
               }
             }
           }
@@ -577,14 +629,20 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
               restoreDayKey: preDispatchDayKey,
               restoreSentAt: preDispatchSentAt,
             });
-            logReminderJobEvent('warn', 'dispatch_reverted_no_successful_push', {
-              runId,
-              userId: user.id,
-              skipReason: 'NO_SUCCESSFUL_PUSH',
-              detail:
-                'Optimistic send marker was reverted because every subscription failed or was deactivated; check pushError logs above per subscription.',
-              dueInstant: dueInstant.toISOString(),
-            });
+            logReminderUserEventOnce(
+              perRunUserDiagLogged,
+              `dispatch_reverted_no_successful_push:${user.id}`,
+              'warn',
+              'dispatch_reverted_no_successful_push',
+              {
+                runId,
+                userId: user.id,
+                skipReason: 'NO_SUCCESSFUL_PUSH',
+                detail:
+                  'Optimistic send marker was reverted because every subscription failed or was deactivated; check pushError logs above per subscription.',
+                dueInstant: dueInstant.toISOString(),
+              }
+            );
           }
         } catch (error) {
           await remindersSQL.revertOptimisticReminderDispatch({
