@@ -324,6 +324,7 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
     runId,
     startedAt: runStartedAt.toISOString(),
     allowMultipleRemindersPerDay: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
+    bypassNextReminderInstantForCandidates: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
     jobBatchLimit: JOB_BATCH_LIMIT,
     maxJobBatchesPerRun: MAX_JOB_BATCHES_PER_RUN,
   });
@@ -344,7 +345,9 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
     }
 
     while (stats.jobBatchesRun < MAX_JOB_BATCHES_PER_RUN) {
-      const dueUsers = await remindersSQL.listDueReminderCandidates(JOB_BATCH_LIMIT);
+      const dueUsers = await remindersSQL.listDueReminderCandidates(JOB_BATCH_LIMIT, {
+        bypassNextReminderInstant: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
+      });
       if (dueUsers.length === 0) {
         logReminderJobEvent('info', 'batch_scan_no_due_users', {
           runId,
@@ -600,7 +603,9 @@ export async function runDueRemindersJob(): Promise<DueRemindersJobStats> {
       }
 
       if (stats.jobBatchesRun >= MAX_JOB_BATCHES_PER_RUN) {
-        const peek = await remindersSQL.listDueReminderCandidates(1);
+        const peek = await remindersSQL.listDueReminderCandidates(1, {
+          bypassNextReminderInstant: ALLOW_MULTIPLE_REMINDERS_PER_DAY,
+        });
         stats.batchLimitReached = peek.length > 0;
         if (stats.batchLimitReached) {
           logReminderJobEvent('warn', 'max_batches_reached_with_remaining_due_users', {
